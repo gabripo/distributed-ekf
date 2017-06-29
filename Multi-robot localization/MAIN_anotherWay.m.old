@@ -1,0 +1,222 @@
+clear all
+close all
+clc
+
+%% Simulation set-up
+% Sampling time
+MdlInit.Ts = 0.05;
+
+% Length of simulation
+MdlInit.T = 10;
+
+%% Vehicles set-up
+% Initial conditions of vehicles
+Vehicles.A.q0 = [0; 1; pi/4];
+Vehicles.B.q0 = [1; 1; pi/2];
+
+% Vehicles wheel radius
+Vehicles.A.R = 0.15;
+Vehicles.B.R = 0.15;
+
+% Vehicles inter-axle
+Vehicles.A.L = 0.56;
+Vehicles.B.L = 0.56;
+
+% Unycicle simulations
+[Vehicles.A.q, Vehicles.A.t, Vehicles.A.u] = UnicycleKinematicMatlab(MdlInit, Vehicles.A);
+[Vehicles.B.q, Vehicles.B.t, Vehicles.B.u] = UnicycleKinematicMatlab(MdlInit, Vehicles.B);
+
+%% Noises - equal for all the vehicles
+
+% Encoder quantization
+Noise.Enc.Quanta = 2*pi/2600;
+
+% Encoder noise
+Noise.Enc.mu = 0;
+Noise.Enc.sigma = 2*Noise.Enc.Quanta/3;
+
+% GPS noise - only 2D coordinates (added orientation to test)
+Noise.GPS.mu = zeros(3,1);
+Noise.GPS.MaxPosErr = 3;    % [m]
+Noise.GPS.MaxOriErr = pi/6; % [rad]
+Noise.GPS.R = diag([ (Noise.GPS.MaxPosErr/3)^2, (Noise.GPS.MaxPosErr/3)^2, (Noise.GPS.MaxOriErr/3)^2]);
+
+% Relative positions noise (for a couple of robots)
+Noise.Rel.mu = zeros(3,1);
+Noise.Rel.MaxBearErr = pi/6;    % [rad]
+Noise.Rel.MaxDistErr = 1;       % [m]
+Noise.Rel.MaxOriErr = pi/6;     % [rad]
+Noise.Rel.R = diag([ (Noise.Rel.MaxBearErr/3)^2, (Noise.Rel.MaxDistErr/3)^2, (Noise.Rel.MaxOriErr/3)^2 ]);
+
+%% Sensors simulation
+
+% Encoders
+[Sensor.A.Enc.Right, Sensor.A.Enc.Left] = EncoderSim(Vehicles.A.u, Vehicles.A.t, Vehicles.A);
+[Sensor.B.Enc.Right, Sensor.B.Enc.Left] = EncoderSim(Vehicles.B.u, Vehicles.B.t, Vehicles.B);
+
+% Noisy encoders
+[Sensor.A.Enc.NoisyRight, Sensor.A.Enc.NoisyLeft] = EncoderNoise(Sensor.A, Noise);
+[Sensor.B.Enc.NoisyRight, Sensor.B.Enc.NoisyLeft] = EncoderNoise(Sensor.B, Noise);
+
+% GPS
+[Sensor.A.GPS.q_m] = GPSsym(Vehicles.A.q);
+[Sensor.B.GPS.q_m] = GPSsym(Vehicles.B.q);
+
+[Sensor.A.GPS.Noisyq_m] = GPSNoise(Vehicles.A.q, Noise);
+[Sensor.B.GPS.Noisyq_m] = GPSNoise(Vehicles.B.q, Noise);
+
+% Relative measurements
+[Sensor.AB.q_rel] = RelSym(Vehicles.A.q, Vehicles.B.q);
+
+[Sensor.AB.Noisyq_rel] = RelSymNoise(Sensor.AB.q_rel, Noise);
+
+%% EKF Initialization
+% States initialization - 6 dofs on the plane, 3 for each vehicle
+EKF.q_est = zeros(6,1);
+
+% Initial covariance matrix of the states
+EKF.P = 1e2*eye(6);
+
+% Covariance matrix of the model variables: 2 encoders per vehicle +
+% relative positions between vehicles
+EKF.Q = diag([Noise.Enc.sigma^2, Noise.Enc.sigma^2, Noise.Enc.sigma^2, Noise.Enc.sigma^2]);
+
+% Covariance matrix of the GPS measurements
+EKF.R = blkdiag(Noise.GPS.R, Noise.GPS.R);
+
+% Number of samples
+EKF.NumS = length(Vehicles.A.t);
+EKF.q_store = zeros(6,EKF.NumS);
+EKF.q_store(:,1) = EKF.q_est;
+
+%% EKF Algorithm
+
+for i=2:EKF.NumS
+    
+   %% Encoder data Integration    
+    % Odometry measurement
+    DeltaEnc = [Sensor.A.Enc.NoisyRight(i) - Sensor.A.Enc.NoisyRight(i-1);
+                Sensor.A.Enc.NoisyLeft(i) - Sensor.A.Enc.NoisyLeft(i-1);
+                Sensor.B.Enc.NoisyRight(i) - Sensor.B.Enc.NoisyRight(i-1);
+                Sensor.B.Enc.NoisyLeft(i) - Sensor.B.Enc.NoisyLeft(i-1)];
+    
+    % Jacobian matrix w.r.t states
+    A_i = [1 0 -sin(EKF.q_est(3))*Vehicles.A.R/2*(DeltaEnc(1) + DeltaEnc(2));
+           0 1 cos(EKF.q_est(3))*Vehicles.A.R/2*(DeltaEnc(1) + DeltaEnc(2));
+           0 0 1];
+    A_j = [1 0 -sin(EKF.q_est(6))*Vehicles.B.R/2*(DeltaEnc(1) + DeltaEnc(2));
+           0 1 cos(EKF.q_est(6))*Vehicles.B.R/2*(DeltaEnc(1) + DeltaEnc(2));
+           0 0 1];
+    A = blkdiag(A_i, A_j);
+    
+    % Jacobian matrix w.r.t increments
+    B_i = [cos(EKF.q_est(3))*Vehicles.A.R/2, cos(EKF.q_est(3))*Vehicles.A.R/2;
+           sin(EKF.q_est(3))*Vehicles.A.R/2, sin(EKF.q_est(3))*Vehicles.A.R/2;
+           Vehicles.A.R/Vehicles.A.L, -Vehicles.A.R/Vehicles.A.L];
+    B_j = [cos(EKF.q_est(6))*Vehicles.B.R/2, cos(EKF.q_est(6))*Vehicles.B.R/2;
+           sin(EKF.q_est(6))*Vehicles.B.R/2, sin(EKF.q_est(6))*Vehicles.B.R/2;
+           Vehicles.B.R/Vehicles.B.L, -Vehicles.B.R/Vehicles.B.L];
+       
+    B = blkdiag(B_i, B_j);
+    
+    % Algorithm to update - i is the index for A, j is the index for B
+    q_est_p = EKF.q_est + B*DeltaEnc;
+    P_p = A*EKF.P*A' + B*EKF.Q*B';
+
+    %% Exteroceptive data integration
+    % Relation between the measure and the states (Jacobian) for the GPS
+    H_i = eye(3);
+    H_j = eye(3);
+    
+    H = blkdiag(H_i, H_j);
+    
+    % Measurements
+    Z_i = Sensor.A.GPS.Noisyq_m(i,:);
+    Z_j = Sensor.B.GPS.Noisyq_m(i,:);
+    
+    Z = [Z_i, Z_j]';
+    
+    % Kalman Gain
+    K = P_p*H'*inv(H*P_p*H' + EKF.R);
+    
+    % Algorithm to update
+    EKF.q_est = q_est_p + K*(Z - H*q_est_p);
+    EKF.P = (eye(6) - K*H)*P_p;
+    
+    %% Relative data integration
+    % Linear variations
+    DeltaX = EKF.q_est(4) - EKF.q_est(1);
+    DeltaY = EKF.q_est(5) - EKF.q_est(2);
+    % Singularity correction
+    DXY = DeltaX^2 + DeltaY^2;
+    if(DXY == 0)
+        DXY = 1e-3;
+    end
+    
+    % Angular relative orientation
+    DeltaTheta = EKF.q_est(6) - EKF.q_est(3);
+
+    % Jacobian matrices of relative observations
+    % 1 - Bearing angle
+    H_i_b = diag([ DeltaY / (DXY), -DeltaX / (DXY), -1]);
+    H_j_b = diag([ -DeltaY / (DXY), DeltaX / (DXY),  0]);
+    
+    H_b = blkdiag(H_i_b, H_j_b);
+    
+    % 2 - Relative distance
+    H_i_d = diag([ -DeltaX / sqrt(DXY), -DeltaY / sqrt(DXY), 0]);
+    H_j_d = diag([ DeltaX / sqrt(DXY),   DeltaY / sqrt(DXY), 0]);
+    
+    H_d = blkdiag(H_i_d, H_j_d);
+          
+    % 3 - Relative orientation
+    H_i_o = diag([0, 0, -1]);
+    H_j_o = diag([0, 0, 1]);
+    
+    H_o = blkdiag(H_i_o, H_j_o);
+    
+%     % 1+2+3 - All the relative measurements
+%     H_rel = H_b + H_d + H_o;
+    
+    % Measurements
+    Z_i_rel = Sensor.AB.Noisyq_rel(i,:);
+    Z_j_rel = Sensor.AB.Noisyq_rel(i,:);
+
+    Z_rel = [Z_i_rel, Z_j_rel]';
+    
+%     % Kalman Gain 
+%     K_rel = P_p*H_rel'*inv(H_rel*P_p*H_rel' + EKF.R);
+%     
+%     % Algorithm to update
+%     EKF.q_est = q_est_p + K_rel*(Z_rel - H_rel*q_est_p);
+%     EKF.P = (eye(6) - K_rel*H_rel)*P_p;
+    % Kalman Gain 
+
+
+    %% Storing estimated values
+    EKF.q_store(:,i) = EKF.q_est;
+end
+
+%% Error evaluation
+err = [Vehicles.A.q, Vehicles.B.q]' - EKF.q_store;
+
+%% Plotting
+t = Vehicles.A.t;
+figure(1)
+plot(EKF.q_store(1,:), EKF.q_store(2,:), Vehicles.A.q(:,1), Vehicles.A.q(:,2))
+title('Vehicle A')
+axis equal
+grid on
+figure(2)
+plot(EKF.q_store(4,:), EKF.q_store(5,:), Vehicles.B.q(:,1), Vehicles.B.q(:,2))
+title('Vehicle B')
+grid on
+axis equal
+
+figure(3)
+plot(EKF.q_store(1,:), EKF.q_store(2,:), 'b', Vehicles.A.q(:,1), Vehicles.A.q(:,2), 'k')
+title('Vehicles A and B')
+hold on
+plot(EKF.q_store(4,:), EKF.q_store(5,:), 'r', Vehicles.B.q(:,1), Vehicles.B.q(:,2), 'k')
+axis equal
+grid on
