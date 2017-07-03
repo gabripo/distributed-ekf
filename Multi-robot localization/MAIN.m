@@ -173,7 +173,7 @@ for i=2:EKF.NumS
     
 %     % 2 - Bearing Angle measurement
 %     z_b_i = atan2(-sin(x_k1(3))*DX + cos(x_k1(3))*DY, cos(x_k1(3))*DX + sin(x_k1(3))*DY);
-%     z_b_j = atan2(-sin(x_k1(6))*DX + cos(x_k1(6))*DY, cos(x_k1(6))*DX + sin(x_k1(3))*DY);    
+%     z_b_j = atan2(-sin(x_k1(6))*DX + cos(x_k1(6))*DY, cos(x_k1(6))*DX + sin(x_k1(6))*DY);    
 %     
 %     H_b = [DY/z_d^2, -DX/z_d^2, -1, -DY/z_d^2, DX/z_d^2, 0;
 %            -DY/z_d^2, DX/z_d^2, 0, DY/z_d^2, -DX/z_d^2, -1];
