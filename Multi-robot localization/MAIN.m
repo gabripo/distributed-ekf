@@ -46,8 +46,8 @@ Noise.Enc.sigma = 2*Noise.Enc.Quanta/3;
 
 % GPS noise - only 2D coordinates (added orientation to test)
 Noise.GPS.mu = zeros(3*Vehicles.Num,1);
-Noise.GPS.MaxPosErr = 3;    % [m]
-Noise.GPS.MaxOriErr = pi/6;
+Noise.GPS.MaxPosErr = 5;    % [m]
+Noise.GPS.MaxOriErr = pi;
 Noise.GPS.R = zeros(3*Vehicles.Num);
 for i=1:Vehicles.Num
     Noise.GPS.R(i*3-2:i*3, i*3-2:i*3) =  diag([(Noise.GPS.MaxPosErr/3)^2, (Noise.GPS.MaxPosErr/3)^2, (Noise.GPS.MaxOriErr/3)^2]);
@@ -60,7 +60,7 @@ Noise.Rel.MaxBearErr = pi/6;
 Noise.Rel.MaxDistErr = 1;       % [m]
 Noise.Rel.MaxOriErr = pi/3;     % [rad]
 for i=1:Vehicles.Num
-    Noise.Rel.R(i*3-2:i*3, i*3-2:i*3) =  diag([(Noise.Rel.MaxDistErr/3)^2, (Noise.Rel.MaxBearErr/3)^2, (Noise.Rel.MaxOriErr/3)^2]);
+    Noise.Rel.R(i*4-3:i*4, i*4-3:i*4) =  diag([(Noise.Rel.MaxBearErr/3)^2, (Noise.Rel.MaxDistErr/3)^2, (Noise.Rel.MaxOriErr/3)^2, (Noise.Rel.MaxBearErr/3)^2]);
 end
                     
 %% Sensors simulation
@@ -101,7 +101,7 @@ end
 clear i
 
 % Covariance matrix of the measurements
-EKF.R = blkdiag(Noise.GPS.R, diag([Noise.Rel.R(1,1), Noise.Rel.R(3,3), Noise.Rel.R(4,4), Noise.Rel.R(6,6)])); %Noise.Rel.R);
+EKF.R = blkdiag(Noise.GPS.R, Noise.Rel.R); % diag([Noise.Rel.R(1,1), Noise.Rel.R(3,3), Noise.Rel.R(4,4), Noise.Rel.R(6,6)])); %Noise.Rel.R);
 
 % Storing all the iterations
 EKF.x_store = zeros(3*Vehicles.Num, EKF.NumS);
@@ -171,15 +171,17 @@ for i=2:EKF.NumS
     
     Z = [Z; Sensor.Rel.Noisyx_rel(i,2); -Sensor.Rel.Noisyx_rel(i,2)];
     
-%     % 2 - Bearing Angle measurement
-%     z_b_i = atan2(-sin(x_k1(3))*DX + cos(x_k1(3))*DY, cos(x_k1(3))*DX + sin(x_k1(3))*DY);
-%     z_b_j = atan2(-sin(x_k1(6))*DX + cos(x_k1(6))*DY, cos(x_k1(6))*DX + sin(x_k1(6))*DY);    
-%     
-%     H_b = [DY/z_d^2, -DX/z_d^2, -1, -DY/z_d^2, DX/z_d^2, 0;
-%            -DY/z_d^2, DX/z_d^2, 0, DY/z_d^2, -DX/z_d^2, -1];
-%     H = [H; H_b];
-%     
-%     Z = [Z; Sensor.Rel.Noisyx_rel(i,1); -Sensor.Rel.Noisyx_rel(i,1)];
+    % 2 - Bearing Angle measurement
+    z_b_i = atan2(-sin(x_k1(3))*DX + cos(x_k1(3))*DY, cos(x_k1(3))*DX + sin(x_k1(3))*DY);
+    z_b_j = atan2(-sin(x_k1(6))*DX + cos(x_k1(6))*DY, cos(x_k1(6))*DX + sin(x_k1(6))*DY);    
+    
+    H_b = [DY/z_d^2, -DX/z_d^2, -1, -DY/z_d^2, DX/z_d^2, 0;
+           DY/z_d^2, -DX/z_d^2, 0, -DY/z_d^2, DX/z_d^2, -1;
+           DY/z_d^2, -DX/z_d^2, -1, -DY/z_d^2, DX/z_d^2, 0;
+           DY/z_d^2, -DX/z_d^2, 0, -DY/z_d^2, DX/z_d^2, -1];
+    H = [H; H_b];
+    
+    Z = [Z; Sensor.Rel.Noisyx_rel(i,1); Sensor.Rel.Noisyx_rel(i,1); Sensor.Rel.Noisyx_rel(i,4); Sensor.Rel.Noisyx_rel(i,4)];
     
     % 3 - Relative orientation
     z_o = DT;

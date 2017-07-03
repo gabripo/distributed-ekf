@@ -10,8 +10,8 @@ theta_j = q_j(:,3);
 % Bearing angle
 z_b_i = atan2( (-sin(theta_i).*delta_x + cos(theta_i).*delta_y) ,...
     (cos(theta_i).*delta_x + sin(theta_i).*delta_y) );
-% z_b_j = atan2( (-sin(theta_j).*delta_x + cos(theta_j).*delta_y) ,...
-%     (cos(theta_j).*delta_x + sin(theta_j).*delta_y) );
+z_b_j = atan2( (-sin(theta_j).*delta_x + cos(theta_j).*delta_y) ,...
+    (cos(theta_j).*delta_x + sin(theta_j).*delta_y) );
 
 %  Relative distance
 z_d = sqrt( delta_x.^2 + delta_y.^2 );
@@ -19,5 +19,4 @@ z_d = sqrt( delta_x.^2 + delta_y.^2 );
 % Relative orientation
 z_o = theta_j - theta_i;
 
-% q_rel = [z_b_i, z_b_j, z_d, z_o];
-q_rel = [z_b_i, z_d, z_o];
+q_rel = [z_b_i, z_d, z_o, z_b_j];
