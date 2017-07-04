@@ -1,6 +1,6 @@
 clear all
 clc
-% close all
+close all
 
 % Always generating the same random numbers (useful to have the same noise
 % in all the tests)
@@ -12,14 +12,14 @@ rng(1);
 SimSets.Ts = 0.01;
 
 % Simulation length
-SimSets.T = 10;
+SimSets.T = 400;
 
 % Vehicles number
 Vehicles.Num = 2;
 
 % Vehicles initial conditions
 Vehicles.x0 = zeros(1, 3*Vehicles.Num);
-Vehicles.x0(4:6) = [1.5 1 pi/4];
+Vehicles.x0(4:6) = [1.5 1 pi/6];
 
 % Vehicles lengthes and wheel radius assigment
 Vehicles.L = zeros(1, Vehicles.Num);
@@ -56,11 +56,11 @@ clear i
 
 % Relative positions noise (for a couple of robots)
 Noise.Rel.mu = zeros(3*Vehicles.Num,1);
-Noise.Rel.MaxBearErr = pi/6;    
+Noise.Rel.MaxBearErr = pi/6;    % [rad]
 Noise.Rel.MaxDistErr = 1;       % [m]
 Noise.Rel.MaxOriErr = pi/3;     % [rad]
 for i=1:Vehicles.Num
-    Noise.Rel.R(i*4-3:i*4, i*4-3:i*4) =  diag([(Noise.Rel.MaxBearErr/3)^2, (Noise.Rel.MaxDistErr/3)^2, (Noise.Rel.MaxOriErr/3)^2, (Noise.Rel.MaxBearErr/3)^2]);
+    Noise.Rel.R(i*3-2:i*3, i*3-2:i*3) =  diag([(Noise.Rel.MaxBearErr/3)^2, (Noise.Rel.MaxDistErr/3)^2, (Noise.Rel.MaxOriErr/3)^2]);
 end
                     
 %% Sensors simulation
@@ -176,21 +176,20 @@ for i=2:EKF.NumS
     z_b_j = atan2(-sin(x_k1(6))*DX + cos(x_k1(6))*DY, cos(x_k1(6))*DX + sin(x_k1(6))*DY);    
     
     H_b = [DY/z_d^2, -DX/z_d^2, -1, -DY/z_d^2, DX/z_d^2, 0;
-           DY/z_d^2, -DX/z_d^2, 0, -DY/z_d^2, DX/z_d^2, -1;
-           DY/z_d^2, -DX/z_d^2, -1, -DY/z_d^2, DX/z_d^2, 0;
-           DY/z_d^2, -DX/z_d^2, 0, -DY/z_d^2, DX/z_d^2, -1];
+           -DY/z_d^2, DX/z_d^2, 0, DY/z_d^2, -DX/z_d^2, -1];
     H = [H; H_b];
     
-    Z = [Z; Sensor.Rel.Noisyx_rel(i,1); Sensor.Rel.Noisyx_rel(i,1); Sensor.Rel.Noisyx_rel(i,4); Sensor.Rel.Noisyx_rel(i,4)];
+    Z = [Z; Sensor.Rel.Noisyx_rel(i,1); Sensor.Rel.Noisyx_rel(i,4)];
+%     Z = [Z; z_b_i; z_b_j];  % no noise measurement (to test)
     
     % 3 - Relative orientation
-    z_o = DT;
+%     z_o = DT;
     
     H_o = [0, 0, -1, 0, 0, 1;
            0, 0, 1, 0, 0, -1];
     H = [H; H_o];
     
-    Z = [Z; Sensor.Rel.Noisyx_rel(i,3); -Sensor.Rel.Noisyx_rel(i,3)];
+    Z = [Z; Sensor.Rel.Noisyx_rel(i,3); Sensor.Rel.Noisyx_rel(i,3)];
     
     % Kalman gain computation
     K = P_k1*H'*inv(H*P_k1*H' + EKF.R);
@@ -205,25 +204,20 @@ end
 
 
 %% PLOTTING
-% figure(1)
-% plot(Vehicles.x(:,1), Vehicles.x(:,2))
-% hold on
-% plot(EKF.x_store(1,:), EKF.x_store(2,:))
-% axis equal
-% title('Vehicle 1')
-% hold off
-% 
-% figure(2)
-% plot(Vehicles.x(:,4), Vehicles.x(:,5))
-% hold on
-% plot(EKF.x_store(4,:), EKF.x_store(5,:))
-% axis equal
-% title('Vehicle 2')
-% hold off
-
-figure(3)
-plot(Vehicles.x(:,1), Vehicles.x(:,2), '--b', EKF.x_store(1,:), EKF.x_store(2,:), 'b')
-hold on
-plot(Vehicles.x(:,4), Vehicles.x(:,5), '--r', EKF.x_store(4,:), EKF.x_store(5,:), 'r')
+figure(1)
+plot(Vehicles.x(:,1), Vehicles.x(:,2), '--b', EKF.x_store(1,:),...
+    EKF.x_store(2,:), 'b', Vehicles.x(:,4), Vehicles.x(:,5), '--r',...
+    EKF.x_store(4,:), EKF.x_store(5,:), 'r')
+legend('Vehicle 1 - Exact trajectory', 'Vehicle 1 - Estimated trajectory',...
+    'Vehicle 2 - Exact trajectory', 'Vehicle 2 - Estimated trajectory')
 axis equal
-hold off
+grid on
+
+figure(2)
+plot(Vehicles.t, EKF.x_store(1,:) - Vehicles.x(:,1)', 'b', Vehicles.t,...
+    EKF.x_store(2,:) - Vehicles.x(:,2)', '--b', Vehicles.t,...
+    EKF.x_store(4,:) - Vehicles.x(:,4)', 'r', Vehicles.t,...
+    EKF.x_store(5,:) - Vehicles.x(:,5)', '--r')
+legend('Vehicle 1 - e_x', 'Vehicle 1 - e_y', 'Vehicle 2 - e_x',...
+    'Vehicle 2 - e_y')
+grid on
