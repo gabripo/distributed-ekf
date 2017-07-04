@@ -143,21 +143,43 @@ for i=2:EKF.NumS
 
 
     %% Update
-    % Per adesso considero solamente 2 veicoli!! 
     % JACOBIAN MATRICES WITH RESPECT TO THE STATES
     H = [];
     Z = [];
     % GPS Measures
-    H_ii = [eye(3), zeros(3)];
-    H_jj = [zeros(3), eye(3)];
-    H = [H; H_ii; H_jj];
+%     H_ii = [eye(3), zeros(3)];
+%     H_jj = [zeros(3), eye(3)];
+%     H = [H; H_ii; H_jj];
+    for n=1:Vehicles.Num
+        H_ii = [];
+       for j=1:n-1
+          H_ii =  [H_ii, zeros(3)];
+       end
+       clear j
+       H_ii = [H_ii, eye(3)];
+       for j=1:Vehicles.Num-n
+           H_ii =  [H_ii, zeros(3)];
+       end
+       clear j
+       H = [H; H_ii];
+    end
+    clear n
+
     Z = [Z; Sensor.GPS.Noisyq_m(i,:)'];
     
     % Relative measures definition
-    DX = x_k1(4) - x_k1(1);
-    DY = x_k1(5) - x_k1(2);
-    DT = x_k1(6) - x_k1(3);
-    
+%     DX = x_k1(4) - x_k1(1);
+%     DY = x_k1(5) - x_k1(2);
+%     DT = x_k1(6) - x_k1(3);
+    % Number of combinations without repetition
+    combNum = nchoosek(Vehicles.Num, 2);
+    DX = []; DY = []; DT = [];
+    for n=1:combNum
+       DX = [DX, x_k1(n+1:3:end) - x_k1(1:3:end-n)];
+       DY = [DY, x_k1(n+1+1:3:end) - x_k1(1:3:end-n-1)];
+       DT = [DT, x_k1(n+1+2:3:end) - x_k1(1:3:end-n-1)];
+    end
+    % TODO Sistemare da qui
     % 1 - relative distance
     z_d = sqrt(DX^2+DY^2);
     
