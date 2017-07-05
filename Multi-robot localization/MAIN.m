@@ -172,17 +172,18 @@ for i=2:EKF.NumS
 %     DY = x_k1(5) - x_k1(2);
 %     DT = x_k1(6) - x_k1(3);
     % Number of combinations without repetition
-    combNum = nchoosek(Vehicles.Num, 2);
     DX = []; DY = []; DT = [];
     temp_x = x_k1(1:3:end);
     temp_y = x_k1(2:3:end);
     temp_t = x_k1(3:3:end);
-    for n=1:combNum
-       DX = [DX, temp_x(n+1:3:end) - temp_x(1:3:end-n)];
-       DY = [DY, temp_y(n+1:3:end) - temp_y(1:3:end-n)];
-       DT = [DT, temp_t(n+1:3:end) - temp_t(1:3:end-n)];
+    for m=length(temp_x):-1:2
+        for n=1:m-1
+            DX = [DX, temp_x(m) - temp_x(n)];
+            DY = [DY, temp_y(m) - temp_y(n)];
+            DT = [DT, temp_t(m) - temp_t(n)];
+        end
     end
-    clear temp_x temp_y temp_t
+    clear temp_x temp_y temp_t m n
     % TODO Sistemare da qui
     % 1 - relative distance
     z_d = sqrt(DX^2+DY^2);

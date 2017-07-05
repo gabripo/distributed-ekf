@@ -1,20 +1,14 @@
-function increments = temp(x_tot, vecNUm)
+function increments = temp(x_k1)
 
-% Combinations number (without repetitions)
-comb = nchoosek(vecNUm, 2);
-
-% Increments initialization
 DX = []; DY = []; DT = [];
-
-% Sub-vectors initialization extraction
-x = x_tot(1:3:end);
-y = x_tot(2:3:end);
-t = x_tot(3:3:end);
-
-for i=1:comb
-    
-   DX = [DX, x(i+1:end) - x(1:end-i)];
-   DY = [DY, y(i+1:end) - y(1:end-i)];
-   DT = [DT, t(i+1:end) - t(1:end-i)];
-end
+    temp_x = x_k1(1:3:end);
+    temp_y = x_k1(2:3:end);
+    temp_t = x_k1(3:3:end);
+    for m=length(temp_x):-1:2
+        for n=1:m-1
+            DX = [DX, temp_x(m) - temp_x(n)];
+            DY = [DY, temp_y(m) - temp_y(n)];
+            DT = [DT, temp_t(m) - temp_t(n)];
+        end
+    end
 increments = [DX; DY; DT];
