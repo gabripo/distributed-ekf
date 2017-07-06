@@ -1,4 +1,4 @@
-function increments = temp(x_k1)
+function [DX, DY, DT] = increments(x_k1)
 
 DX = []; DY = []; DT = [];
     temp_x = x_k1(1:3:end);
@@ -11,4 +11,3 @@ DX = []; DY = []; DT = [];
             DT = [DT, temp_t(m) - temp_t(n)];
         end
     end
-increments = [DX; DY; DT];
