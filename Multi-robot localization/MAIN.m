@@ -58,7 +58,7 @@ end
 clear i
 
 % Relative positions noise 
-Noise.Rel.mu = zeros(3*Vehicles.Num,1);
+Noise.Rel.mu = zeros(4*nchoosek(Vehicles.Num, 2),1);
 Noise.Rel.MaxBearErr = pi/6;    % [rad]
 Noise.Rel.MaxDistErr = 1;       % [m]
 Noise.Rel.MaxOriErr = pi/3;     % [rad]
@@ -97,7 +97,7 @@ for i=1:Vehicles.Num-1
     end
 end
 clear i A
-[Sensor.Rel.Noisyx_rel] = RelSymNoise(Sensor.Rel.x_rel, Noise);
+Sensor.Rel.Noisyx_rel = RelSymNoise(Sensor.Rel.x_rel, Noise);
 
 %% EKF Initialization
 
@@ -205,7 +205,10 @@ for i=2:EKF.NumS
     H = [H; H_b];
     
 %     Z = [Z; Sensor.Rel.Noisyx_rel(i,4); Sensor.Rel.Noisyx_rel(i,1)]; %2D
-    Z = [Z; Sensor.Rel.Noisyx_rel(i, end:-3:1)'];
+    for k=1:nchoosek(Vehicles.Num, 2)
+       Z = [Z; Sensor.Rel.Noisyx_rel(i, k*4-3:k*4)];
+    end
+    clear k
     
     % 2 - Relative distance
 %     H_d = double(subs(H_d_sym, x_sym, x_k1'));    % SLOW variant
