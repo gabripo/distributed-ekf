@@ -110,6 +110,23 @@ EKF.R = blkdiag(Noise.GPS.R); %, diag([Noise.Rel.R(1,1), Noise.Rel.R(3,3), Noise
 EKF.x_store = zeros(3*Vehicles.Num, EKF.NumS);
 EKF.x_store(:,1) = EKF.x_est;
 
+% Jacobian of GPS measurements
+H_gps = [];
+for n=1:Vehicles.Num
+    H_ii = [];
+   for j=1:n-1
+      H_ii =  [H_ii, zeros(3)];
+   end
+   clear j
+   H_ii = [H_ii, eye(3)];
+   for j=1:Vehicles.Num-n
+       H_ii =  [H_ii, zeros(3)];
+   end
+   clear j
+   H_gps = [H_gps; H_ii];
+end
+clear n
+
 %% JACOBIAN MATRICES OF RELATIVE MEASUREMENTS HARDCODING
 % H = subs(H_sym, x_sym, x);
 tic
@@ -157,20 +174,7 @@ for i=2:EKF.NumS
     H = [];
     Z = [];
     % GPS Measures
-    for n=1:Vehicles.Num
-        H_ii = [];
-       for j=1:n-1
-          H_ii =  [H_ii, zeros(3)];
-       end
-       clear j
-       H_ii = [H_ii, eye(3)];
-       for j=1:Vehicles.Num-n
-           H_ii =  [H_ii, zeros(3)];
-       end
-       clear j
-       H = [H; H_ii];
-    end
-    clear n
+    H = [H; H_gps];
 
     Z = [Z; Sensor.GPS.Noisyq_m(i,:)'];
     
