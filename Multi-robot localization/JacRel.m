@@ -13,7 +13,7 @@ syms h_d
 h_d = sqrt(DX.^2+DY.^2);
 
 % Jacobian of h_d w.r.t x
-H_d = jacobian(h_d, x_sym);
+H_d = simplify(jacobian(h_d, x_sym));
 
 %% Symbolic relative orientation
 syms h_o
