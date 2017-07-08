@@ -114,9 +114,9 @@ EKF.x_store(:,1) = EKF.x_est;
 % H = subs(H_sym, x_sym, x);
 tic
 [H_d_sym, H_o_sym, H_b_sym] = JacRel(Vehicles.x0);
-H_d_mf = matlabFunction(H_d_sym);
-H_o_mf = matlabFunction(H_o_sym);
-H_b_mf = matlabFunction(H_b_sym);
+matlabFunction(H_d_sym, 'File', 'H_d_mf');
+matlabFunction(H_o_sym, 'File', 'H_o_mf');
+matlabFunction(H_b_sym, 'File', 'H_b_mf');
 CodeTime.JacComp = toc;
 
 %% EKF 
@@ -176,26 +176,25 @@ for i=2:EKF.NumS
     
     % Jacobian matrices of relative measurements
     x_sym = symbolizer(x_k1, 'x');
+    x_cell = num2cell(x_k1');
     % 1 - Relative bearing angles
-    H_b = double(subs(H_b_sym, x_sym, x_k1'));
-%     H_b = H_b_mf(x_k1')
+%     H_b = double(subs(H_b_sym, x_sym, x_k1'));    % SLOW variant
+    H_b = H_b_mf(x_cell{1,:});
     H = [H; H_b];
     
     Z = [Z; Sensor.Rel.Noisyx_rel(i,1); Sensor.Rel.Noisyx_rel(i,4)];   
     
     % 2 - Relative distance
-    H_d = double(subs(H_d_sym, x_sym, x_k1'));
+%     H_d = double(subs(H_d_sym, x_sym, x_k1'));    % SLOW variant
+    x_cell_xy = extractXY(x_cell);
+    H_d = H_d_mf(x_cell_xy{1,:});
 
     H = [H; H_d];
     
     Z = [Z; Sensor.Rel.Noisyx_rel(i,2)];
-
-%     Z = [Z; z_b_i; z_b_j];  % no noise measurement (to test)
     
     % 3 - Relative orientation
-%     z_o = DT;
-    
-    H_o = [0, 0, -1, 0, 0, 1];
+    H_o = H_o_mf; %(x_cell{1,3:3:end});
     H = [H; H_o];
     
     Z = [Z; Sensor.Rel.Noisyx_rel(i,3)];
