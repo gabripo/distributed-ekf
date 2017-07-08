@@ -15,12 +15,12 @@ SimSets.Ts = 0.01;
 SimSets.T = 400;
 
 % Vehicles number
-Vehicles.Num = 2;
+Vehicles.Num = 3;
 
 % Vehicles initial conditions
 Vehicles.x0 = zeros(1, 3*Vehicles.Num);
 Vehicles.x0(4:6) = [1.5 1 pi/6];
-% Vehicles.x0(7:9) = [1.5 -1 -pi/6];
+Vehicles.x0(7:9) = [1.5 -1 -pi/6];
 
 % Vehicles lengthes and wheel radius assigment
 Vehicles.L = zeros(1, Vehicles.Num);
@@ -57,15 +57,16 @@ for i=1:Vehicles.Num
 end
 clear i
 
-% Relative positions noise (for a couple of robots)
+% Relative positions noise 
 Noise.Rel.mu = zeros(3*Vehicles.Num,1);
 Noise.Rel.MaxBearErr = pi/6;    % [rad]
 Noise.Rel.MaxDistErr = 1;       % [m]
 Noise.Rel.MaxOriErr = pi/3;     % [rad]
-for i=1:Vehicles.Num
-    Noise.Rel.R(i*3-2:i*3, i*3-2:i*3) =  diag([(Noise.Rel.MaxBearErr/3)^2, (Noise.Rel.MaxDistErr/3)^2, (Noise.Rel.MaxOriErr/3)^2]);
-end
-                    
+Noise.Rel.R = [];
+for i=1:nchoosek(Vehicles.Num, 2)
+    Noise.Rel.R = blkdiag(Noise.Rel.R, diag([(Noise.Rel.MaxBearErr/3)^2, (Noise.Rel.MaxBearErr/3)^2, (Noise.Rel.MaxDistErr/3)^2, (Noise.Rel.MaxOriErr/3)^2]));
+end                
+clear i
 %% Sensors simulation
 
 % Encoders
@@ -81,8 +82,21 @@ end
 [Sensor.GPS.Noisyq_m] = GPSNoise(Vehicles, Noise);
 
 % Relative measurements
-[Sensor.Rel.x_rel] = RelSym(Vehicles.x(:,1:3), Vehicles.x(:,4:6));
-
+% [Sensor.Rel.x_rel] = RelSym(Vehicles.x(:,1:3), Vehicles.x(:,4:6));
+Sensor.Rel.x_rel = [];
+temp = [Vehicles.x(:,1:3:end)'; Vehicles.x(:,2:3:end)'; Vehicles.x(:,3:3:end)'];
+Vehicles.veh = [temp(1:3:end, :); temp(2:3:end, :); temp(3:3:end, :)];
+clear temp
+for i=1:Vehicles.Num
+    A{i} = Vehicles.veh(i*3-2:i*3, :)';
+end
+clear i
+for i=1:Vehicles.Num-1
+    for j=i+1:Vehicles.Num
+       Sensor.Rel.x_rel = [Sensor.Rel.x_rel, RelSym(A{i}, A{j})];
+    end
+end
+clear i A
 [Sensor.Rel.Noisyx_rel] = RelSymNoise(Sensor.Rel.x_rel, Noise);
 
 %% EKF Initialization
@@ -104,9 +118,9 @@ end
 clear i
 
 % Covariance matrix of the measurements
-EKF.R = blkdiag(Noise.GPS.R, Noise.Rel.R(4,4), Noise.Rel.R(1,1), Noise.Rel.R(2,2), Noise.Rel.R(3,3)); %Noise.Rel.R);
+EKF.R = blkdiag(Noise.GPS.R, Noise.Rel.R);
 
-% Storing all the iterations
+% Storing all the iterations - initialization
 EKF.x_store = zeros(3*Vehicles.Num, EKF.NumS);
 EKF.x_store(:,1) = EKF.x_est;
 
@@ -185,12 +199,13 @@ for i=2:EKF.NumS
     x_cell = num2cell(x_k1');
     x_cell_xy = extractXY(x_cell);
 
-%     % 1 - Relative bearing angles
-% %     H_b = double(subs(H_b_sym, x_sym, x_k1'));    % SLOW variant
+    % 1 - Relative bearing angles
+%     H_b = double(subs(H_b_sym, x_sym, x_k1'));    % SLOW variant
     H_b = H_b_mf(x_cell_xy{1,:});
     H = [H; H_b];
     
-    Z = [Z; Sensor.Rel.Noisyx_rel(i,4); Sensor.Rel.Noisyx_rel(i,1)];   
+%     Z = [Z; Sensor.Rel.Noisyx_rel(i,4); Sensor.Rel.Noisyx_rel(i,1)]; %2D
+    Z = [Z; Sensor.Rel.Noisyx_rel(i, end:-3:1)'];
     
     % 2 - Relative distance
 %     H_d = double(subs(H_d_sym, x_sym, x_k1'));    % SLOW variant
