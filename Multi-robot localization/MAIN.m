@@ -12,7 +12,7 @@ rng(1);
 SimSets.Ts = 0.01;
 
 % Simulation length
-SimSets.T = 10 %400;
+SimSets.T = 40 %400;
 
 % Vehicles number
 Vehicles.Num = 2;
@@ -185,21 +185,21 @@ for i=2:EKF.NumS
     Z = [Z; Sensor.Rel.Noisyx_rel(i,1); Sensor.Rel.Noisyx_rel(i,4)];   
     
     % 2 - Relative distance
-%     H_d = double(subs(H_d_sym, x_sym, x_k1'));    % SLOW variant
-    x_cell_xy = extractXY(x_cell);
-    H_d = H_d_mf(x_cell_xy{1,:});
+    H_d = double(subs(H_d_sym, x_sym, x_k1'));    % SLOW variant
+%     x_cell_xy = extractXY(x_cell);
+%     H_d = H_d_mf(x_cell_xy{1,:});
 
     H = [H; H_d];
     
     Z = [Z; Sensor.Rel.Noisyx_rel(i,2)];
     
     % 3 - Relative orientation
-    H_o = H_o_mf; %(x_cell{1,3:3:end});
+    H_o = H_o_mf;
     H = [H; H_o];
     
     Z = [Z; Sensor.Rel.Noisyx_rel(i,3)];
     
-    % TODO Fix EKF.R size
+    % TODO Fix EKF.R size for more than 2 vehicles
     % Kalman gain computation
     K = P_k1*H'*inv(H*P_k1*H' + EKF.R);
     
