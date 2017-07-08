@@ -104,7 +104,7 @@ end
 clear i
 
 % Covariance matrix of the measurements
-EKF.R = blkdiag(Noise.GPS.R); %, diag([Noise.Rel.R(1,1), Noise.Rel.R(3,3), Noise.Rel.R(4,4), Noise.Rel.R(6,6)])); %Noise.Rel.R);
+EKF.R = blkdiag(Noise.GPS.R, Noise.Rel.R(3,3)); %, diag([Noise.Rel.R(1,1), Noise.Rel.R(3,3), Noise.Rel.R(4,4), Noise.Rel.R(6,6)])); %Noise.Rel.R);
 
 % Storing all the iterations
 EKF.x_store = zeros(3*Vehicles.Num, EKF.NumS);
@@ -135,6 +135,11 @@ matlabFunction(H_d_sym, 'File', 'H_d_mf');
 matlabFunction(H_o_sym, 'File', 'H_o_mf');
 matlabFunction(H_b_sym, 'File', 'H_b_mf');
 CodeTime.JacComp = toc;
+
+% Symbolic state vector
+x_sym = symbolizer(EKF.x_est, 'x');
+x_cell = num2cell(EKF.x_est');
+x_cell_xy = extractXY(x_cell);
 
 %% EKF 
 tic
@@ -179,8 +184,7 @@ for i=2:EKF.NumS
     Z = [Z; Sensor.GPS.Noisyq_m(i,:)'];
     
 %     % Jacobian matrices of relative measurements
-%     x_sym = symbolizer(x_k1, 'x');
-%     x_cell = num2cell(x_k1');
+
 %     % 1 - Relative bearing angles
 % %     H_b = double(subs(H_b_sym, x_sym, x_k1'));    % SLOW variant
 %     H_b = H_b_mf(x_cell{1,:});
@@ -190,7 +194,7 @@ for i=2:EKF.NumS
 %     
 %     % 2 - Relative distance
 %     H_d = double(subs(H_d_sym, x_sym, x_k1'));    % SLOW variant
-% %     x_cell_xy = extractXY(x_cell);
+
 % %     H_d = H_d_mf(x_cell_xy{1,:});
 % 
 %     H = [H; H_d];
@@ -198,10 +202,10 @@ for i=2:EKF.NumS
 %     Z = [Z; Sensor.Rel.Noisyx_rel(i,2)];
 %     
 %     % 3 - Relative orientation
-%     H_o = H_o_mf;
-%     H = [H; H_o];
+    H_o = H_o_mf;
+    H = [H; H_o];
 %     
-%     Z = [Z; Sensor.Rel.Noisyx_rel(i,3)];
+    Z = [Z; Sensor.Rel.Noisyx_rel(i,3)];
     
     % TODO Fix EKF.R size for more than 2 vehicles
     % Kalman gain computation
