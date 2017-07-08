@@ -43,7 +43,7 @@ for i=1:length(Y)   % Reading cell arrays
     k=length(T);
     % Reading cell element containing the increments with respect to T(i)
     for j=length(Y{i})
-        h_b = [h_b; bearing( X{i}(j), Y{i}(j), T(i) );...
+        h_b = [h_b, bearing( X{i}(j), Y{i}(j), T(i) ),...
                     bearing( X{i}(j), Y{i}(j), T(k) )];
         k=k-1;  % Decrasing k to shift the orientation
     end

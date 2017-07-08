@@ -12,7 +12,7 @@ rng(1);
 SimSets.Ts = 0.01;
 
 % Simulation length
-SimSets.T = 10;%400;
+SimSets.T = 10 %400;
 
 % Vehicles number
 Vehicles.Num = 2;
@@ -20,7 +20,7 @@ Vehicles.Num = 2;
 % Vehicles initial conditions
 Vehicles.x0 = zeros(1, 3*Vehicles.Num);
 Vehicles.x0(4:6) = [1.5 1 pi/6];
-Vehicles.x0(4:6) = [1.5 -1 -pi/6];
+% Vehicles.x0(7:9) = [1.5 -1 -pi/6];
 
 % Vehicles lengthes and wheel radius assigment
 Vehicles.L = zeros(1, Vehicles.Num);
@@ -34,7 +34,9 @@ clear i
 %% Simulation
 
 % Vehicles simulations
+tic
 [Vehicles.x, Vehicles.t, Vehicles.u] = UnicycleKinematicMatlab(SimSets, Vehicles);
+CodeTime.VehicleSym = toc;
 
 %% Noises - equal for all the vehicles
 
@@ -102,7 +104,7 @@ end
 clear i
 
 % Covariance matrix of the measurements
-EKF.R = blkdiag(Noise.GPS.R, Noise.Rel.R); % diag([Noise.Rel.R(1,1), Noise.Rel.R(3,3), Noise.Rel.R(4,4), Noise.Rel.R(6,6)])); %Noise.Rel.R);
+EKF.R = blkdiag(Noise.GPS.R, diag([Noise.Rel.R(1,1), Noise.Rel.R(3,3), Noise.Rel.R(4,4), Noise.Rel.R(6,6)])); %Noise.Rel.R);
 
 % Storing all the iterations
 EKF.x_store = zeros(3*Vehicles.Num, EKF.NumS);
@@ -110,10 +112,15 @@ EKF.x_store(:,1) = EKF.x_est;
 
 %% JACOBIAN MATRICES OF RELATIVE MEASUREMENTS HARDCODING
 % H = subs(H_sym, x_sym, x);
+tic
 [H_d_sym, H_o_sym, H_b_sym] = JacRel(Vehicles.x0);
+H_d_mf = matlabFunction(H_d_sym);
+H_o_mf = matlabFunction(H_o_sym);
+H_b_mf = matlabFunction(H_b_sym);
+CodeTime.JacComp = toc;
 
 %% EKF 
-
+tic
 for i=2:EKF.NumS
     %% Prediction
     
@@ -167,32 +174,22 @@ for i=2:EKF.NumS
 
     Z = [Z; Sensor.GPS.Noisyq_m(i,:)'];
     
-%     % Relative measures definition
-%     [DX, DY, DT] = increments(x_k1);
-% 
-%     % 1 - relative distance
-%     z_d = sqrt(DX.^2+DY.^2);
-%     
-%     z_d(z_d==0) = 1e-4;
-    
-    % Jacobian matrix
+    % Jacobian matrices of relative measurements
     x_sym = symbolizer(x_k1, 'x');
+    % 1 - Relative bearing angles
+    H_b = double(subs(H_b_sym, x_sym, x_k1'));
+%     H_b = H_b_mf(x_k1')
+    H = [H; H_b];
+    
+    Z = [Z; Sensor.Rel.Noisyx_rel(i,1); Sensor.Rel.Noisyx_rel(i,4)];   
+    
+    % 2 - Relative distance
     H_d = double(subs(H_d_sym, x_sym, x_k1'));
 
     H = [H; H_d];
     
-    Z = [Z; Sensor.Rel.Noisyx_rel(i,2); -Sensor.Rel.Noisyx_rel(i,2)];
-    
-    % 2 - Bearing Angle measurement
-%     z_b_i = atan2(-sin(x_k1(3))*DX + cos(x_k1(3))*DY, cos(x_k1(3))*DX + sin(x_k1(3))*DY);
-%     z_b_j = atan2(-sin(x_k1(6))*DX + cos(x_k1(6))*DY, cos(x_k1(6))*DX + sin(x_k1(6))*DY);    
-%     
-%     H_b = [DY/z_d^2, -DX/z_d^2, -1, -DY/z_d^2, DX/z_d^2, 0;
-%            -DY/z_d^2, DX/z_d^2, 0, DY/z_d^2, -DX/z_d^2, -1];
-    H_b = double(subs(H_b_sym, x_sym, x_k1'));
-    H = [H; H_b];
-    
-    Z = [Z; Sensor.Rel.Noisyx_rel(i,1); Sensor.Rel.Noisyx_rel(i,4)];
+    Z = [Z; Sensor.Rel.Noisyx_rel(i,2)];
+
 %     Z = [Z; z_b_i; z_b_j];  % no noise measurement (to test)
     
     % 3 - Relative orientation
@@ -203,6 +200,7 @@ for i=2:EKF.NumS
     
     Z = [Z; Sensor.Rel.Noisyx_rel(i,3)];
     
+    % TODO Fix EKF.R size
     % Kalman gain computation
     K = P_k1*H'*inv(H*P_k1*H' + EKF.R);
     
@@ -213,9 +211,10 @@ for i=2:EKF.NumS
     %% Storing the result
     EKF.x_store(:,i) = EKF.x_est;
 end
-
+CodeTime.EKF = toc;
 
 %% PLOTTING
+tic
 figure(1)
 plot(Vehicles.x(:,1), Vehicles.x(:,2), '--b', EKF.x_store(1,:),...
     EKF.x_store(2,:), 'b', Vehicles.x(:,4), Vehicles.x(:,5), '--r',...
@@ -233,3 +232,4 @@ plot(Vehicles.t, EKF.x_store(1,:) - Vehicles.x(:,1)', 'b', Vehicles.t,...
 legend('Vehicle 1 - e_x', 'Vehicle 1 - e_y', 'Vehicle 2 - e_x',...
     'Vehicle 2 - e_y')
 grid on
+CodeTime.Plot = toc
