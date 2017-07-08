@@ -12,7 +12,7 @@ rng(1);
 SimSets.Ts = 0.01;
 
 % Simulation length
-SimSets.T = 40 %400;
+SimSets.T = 400;
 
 % Vehicles number
 Vehicles.Num = 2;
@@ -104,7 +104,7 @@ end
 clear i
 
 % Covariance matrix of the measurements
-EKF.R = blkdiag(Noise.GPS.R, Noise.Rel.R(2,2), Noise.Rel.R(3,3)); %, diag([Noise.Rel.R(1,1), Noise.Rel.R(3,3), Noise.Rel.R(4,4), Noise.Rel.R(6,6)])); %Noise.Rel.R);
+EKF.R = blkdiag(Noise.GPS.R, Noise.Rel.R(4,4), Noise.Rel.R(1,1), Noise.Rel.R(2,2), Noise.Rel.R(3,3)); %Noise.Rel.R);
 
 % Storing all the iterations
 EKF.x_store = zeros(3*Vehicles.Num, EKF.NumS);
@@ -187,11 +187,11 @@ for i=2:EKF.NumS
 
 %     % 1 - Relative bearing angles
 % %     H_b = double(subs(H_b_sym, x_sym, x_k1'));    % SLOW variant
-%     H_b = H_b_mf(x_cell{1,:});
-%     H = [H; H_b];
-%     
-%     Z = [Z; Sensor.Rel.Noisyx_rel(i,1); Sensor.Rel.Noisyx_rel(i,4)];   
-%     
+    H_b = H_b_mf(x_cell_xy{1,:});
+    H = [H; H_b];
+    
+    Z = [Z; Sensor.Rel.Noisyx_rel(i,4); Sensor.Rel.Noisyx_rel(i,1)];   
+    
     % 2 - Relative distance
 %     H_d = double(subs(H_d_sym, x_sym, x_k1'));    % SLOW variant
     H_d = H_d_mf(x_cell_xy{1,:});
