@@ -35,7 +35,7 @@ for i=2:n
 end
 clear i j
 
-% Symbolic vector of orientations - revers order [T_n,...,T_1]
+% Symbolic vector of orientations - reverse order [T_n,...,T_1]
 T = x_sym(length(x):-3:3);
 
 % Symbolic bearing angle
@@ -49,6 +49,7 @@ for i=1:length(Y)   % Reading cell arrays
     end
 end
 clear i j k
+simplify(h_b);
 
 % Jacobian of h_b w.r.t x
-H_b = jacobian(h_b, x_sym);
+H_b = simplify(jacobian(h_b, x_sym));
