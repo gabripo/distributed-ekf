@@ -58,7 +58,7 @@ end
 clear i
 
 % Relative positions noise 
-Noise.Rel.mu = zeros(3*Vehicles.Num,1);
+Noise.Rel.mu = zeros(4*nchoosek(Vehicles.Num,2),1);
 Noise.Rel.MaxBearErr = pi/6;    % [rad]
 Noise.Rel.MaxDistErr = 1;       % [m]
 Noise.Rel.MaxOriErr = pi/3;     % [rad]
@@ -119,7 +119,7 @@ end
 clear i
 
 % Covariance matrix of the measurements
-EKF.R = blkdiag(Noise.GPS.R, Noise.Rel.R(4,4), Noise.Rel.R(1,1), Noise.Rel.R(2,2), Noise.Rel.R(3,3)); %Noise.Rel.R);
+EKF.R = blkdiag(Noise.GPS.R, Noise.Rel.R);%Noise.Rel.R(4,4), Noise.Rel.R(1,1), Noise.Rel.R(2,2), Noise.Rel.R(3,3)); %Noise.Rel.R);
 
 % Storing all the iterations
 EKF.x_store = zeros(3*Vehicles.Num, EKF.NumS);
