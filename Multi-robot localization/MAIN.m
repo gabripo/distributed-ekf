@@ -21,6 +21,7 @@ Vehicles.Num = 3;
 Vehicles.x0 = zeros(1, 3*Vehicles.Num);
 Vehicles.x0(4:6) = [1.5 1 pi/6];
 Vehicles.x0(7:9) = [1.5 -1 pi/3];
+% Vehicles.x0(10:12) = [2 2 pi/4];
 
 % Vehicles lengthes and wheel radius assigment
 Vehicles.L = zeros(1, Vehicles.Num);
@@ -234,20 +235,23 @@ CodeTime.EKF = toc;
 %% PLOTTING
 tic
 figure(1)
+% % 2D plot:
 % plot(Vehicles.x(:,1), Vehicles.x(:,2), '--b', EKF.x_store(1,:),...
 %     EKF.x_store(2,:), 'b', Vehicles.x(:,4), Vehicles.x(:,5), '--r',...
 %     EKF.x_store(4,:), EKF.x_store(5,:), 'r')
 % legend('Vehicle 1 - Exact trajectory', 'Vehicle 1 - Estimated trajectory',...
 %     'Vehicle 2 - Exact trajectory', 'Vehicle 2 - Estimated trajectory')
+comparePlot(Vehicles.x, EKF.x_store, 'Exact trajectory of', 'Estimated trajectory of')
 axis equal
 grid on
 
 figure(2)
-plot(Vehicles.t, EKF.x_store(1,:) - Vehicles.x(:,1)', 'b', Vehicles.t,...
-    EKF.x_store(2,:) - Vehicles.x(:,2)', '--b', Vehicles.t,...
-    EKF.x_store(4,:) - Vehicles.x(:,4)', 'r', Vehicles.t,...
-    EKF.x_store(5,:) - Vehicles.x(:,5)', '--r')
-legend('Vehicle 1 - e_x', 'Vehicle 1 - e_y', 'Vehicle 2 - e_x',...
-    'Vehicle 2 - e_y')
+% plot(Vehicles.t, EKF.x_store(1,:) - Vehicles.x(:,1)', 'b', Vehicles.t,...
+%     EKF.x_store(2,:) - Vehicles.x(:,2)', '--b', Vehicles.t,...
+%     EKF.x_store(4,:) - Vehicles.x(:,4)', 'r', Vehicles.t,...
+%     EKF.x_store(5,:) - Vehicles.x(:,5)', '--r')
+% legend('Vehicle 1 - e_x', 'Vehicle 1 - e_y', 'Vehicle 2 - e_x',...
+%     'Vehicle 2 - e_y')
+errorPlot(Vehicles.t, Vehicles.x, EKF.x_store)
 grid on
 CodeTime.Plot = toc
