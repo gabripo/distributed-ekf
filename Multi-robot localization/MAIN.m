@@ -15,7 +15,7 @@ SimSets.Ts = 0.01;
 SimSets.T = 400;
 
 % Vehicles number
-Vehicles.Num = 3;
+Vehicles.Num = 2;
 
 % Vehicles initial conditions
 Vehicles.x0 = zeros(1, 3*Vehicles.Num);
@@ -58,15 +58,18 @@ end
 clear i
 
 % Relative positions noise 
-Noise.Rel.mu = zeros(4*nchoosek(Vehicles.Num, 2),1);
+Noise.Rel.mu = zeros(3*Vehicles.Num,1);
 Noise.Rel.MaxBearErr = pi/6;    % [rad]
 Noise.Rel.MaxDistErr = 1;       % [m]
 Noise.Rel.MaxOriErr = pi/3;     % [rad]
+% for i=1:Vehicles.Num
+%     Noise.Rel.R(i*3-2:i*3, i*3-2:i*3) =  diag([(Noise.Rel.MaxBearErr/3)^2, (Noise.Rel.MaxDistErr/3)^2, (Noise.Rel.MaxOriErr/3)^2]);
+% end
 Noise.Rel.R = [];
 for i=1:nchoosek(Vehicles.Num, 2)
     Noise.Rel.R = blkdiag(Noise.Rel.R, diag([(Noise.Rel.MaxBearErr/3)^2, (Noise.Rel.MaxBearErr/3)^2, (Noise.Rel.MaxDistErr/3)^2, (Noise.Rel.MaxOriErr/3)^2]));
 end                
-clear i
+clear i          
 %% Sensors simulation
 
 % Encoders
@@ -82,13 +85,10 @@ clear i
 [Sensor.GPS.Noisyq_m] = GPSNoise(Vehicles, Noise);
 
 % Relative measurements
-% [Sensor.Rel.x_rel] = RelSym(Vehicles.x(:,1:3), Vehicles.x(:,4:6));
+% [Sensor.Rel.x_rel] = RelSym(Vehicles.x(:,1:3), Vehicles.x(:,4:6));    %2D
 Sensor.Rel.x_rel = [];
-temp = [Vehicles.x(:,1:3:end)'; Vehicles.x(:,2:3:end)'; Vehicles.x(:,3:3:end)'];
-Vehicles.veh = [temp(1:3:end, :); temp(2:3:end, :); temp(3:3:end, :)];
-clear temp
 for i=1:Vehicles.Num
-    A{i} = Vehicles.veh(i*3-2:i*3, :)';
+    A{i} = Vehicles.x(:,i*3-2:i*3);
 end
 clear i
 for i=1:Vehicles.Num-1
@@ -96,8 +96,9 @@ for i=1:Vehicles.Num-1
        Sensor.Rel.x_rel = [Sensor.Rel.x_rel, RelSym(A{i}, A{j})];
     end
 end
-clear i A
-Sensor.Rel.Noisyx_rel = RelSymNoise(Sensor.Rel.x_rel, Noise);
+clear i j A
+
+[Sensor.Rel.Noisyx_rel] = RelSymNoise(Sensor.Rel.x_rel, Noise);
 
 %% EKF Initialization
 
@@ -118,9 +119,9 @@ end
 clear i
 
 % Covariance matrix of the measurements
-EKF.R = blkdiag(Noise.GPS.R, Noise.Rel.R);
+EKF.R = blkdiag(Noise.GPS.R, Noise.Rel.R(4,4), Noise.Rel.R(1,1), Noise.Rel.R(2,2), Noise.Rel.R(3,3)); %Noise.Rel.R);
 
-% Storing all the iterations - initialization
+% Storing all the iterations
 EKF.x_store = zeros(3*Vehicles.Num, EKF.NumS);
 EKF.x_store(:,1) = EKF.x_est;
 
@@ -199,17 +200,12 @@ for i=2:EKF.NumS
     x_cell = num2cell(x_k1');
     x_cell_xy = extractXY(x_cell);
 
-    % 1 - Relative bearing angles
-%     H_b = double(subs(H_b_sym, x_sym, x_k1'));    % SLOW variant
+%     % 1 - Relative bearing angles
+% %     H_b = double(subs(H_b_sym, x_sym, x_k1'));    % SLOW variant
     H_b = H_b_mf(x_cell_xy{1,:});
     H = [H; H_b];
     
-    % TODO Fix the sensor reading
-%     Z = [Z; Sensor.Rel.Noisyx_rel(i,4); Sensor.Rel.Noisyx_rel(i,1)]; %2D
-    for k=1:nchoosek(Vehicles.Num, 2)
-        Z = [Z; Sensor.Rel.Noisyx_rel(i,k*4); Sensor.Rel.Noisyx_rel(i,k*4-3)];
-    end
-    clear k
+    Z = [Z; Sensor.Rel.Noisyx_rel(i,4); Sensor.Rel.Noisyx_rel(i,1)];   
     
     % 2 - Relative distance
 %     H_d = double(subs(H_d_sym, x_sym, x_k1'));    % SLOW variant
@@ -217,19 +213,13 @@ for i=2:EKF.NumS
 
     H = [H; H_d];
     
-%     Z = [Z; Sensor.Rel.Noisyx_rel(i,2)];  % 2D
-    for k=1:nchoosek(Vehicles.Num, 2)
-        Z = [Z; Sensor.Rel.Noisyx_rel(i,k*2)];
-    end
+    Z = [Z; Sensor.Rel.Noisyx_rel(i,2)];
     
     % 3 - Relative orientation
     H_o = H_o_mf;
     H = [H; H_o];
     
-%     Z = [Z; Sensor.Rel.Noisyx_rel(i,3)];  % 2D
-    for k=1:nchoosek(Vehicles.Num, 2)
-        Z = [Z; Sensor.Rel.Noisyx_rel(i,k*3)];
-    end
+    Z = [Z; Sensor.Rel.Noisyx_rel(i,3)];
     
     % TODO Fix EKF.R size for more than 2 vehicles
     % Kalman gain computation
@@ -246,14 +236,14 @@ CodeTime.EKF = toc;
 
 %% PLOTTING
 tic
-figure(1)
-plot(Vehicles.x(:,1), Vehicles.x(:,2), '--b', EKF.x_store(1,:),...
-    EKF.x_store(2,:), 'b', Vehicles.x(:,4), Vehicles.x(:,5), '--r',...
-    EKF.x_store(4,:), EKF.x_store(5,:), 'r')
-legend('Vehicle 1 - Exact trajectory', 'Vehicle 1 - Estimated trajectory',...
-    'Vehicle 2 - Exact trajectory', 'Vehicle 2 - Estimated trajectory')
-axis equal
-grid on
+% figure(1)
+% plot(Vehicles.x(:,1), Vehicles.x(:,2), '--b', EKF.x_store(1,:),...
+%     EKF.x_store(2,:), 'b', Vehicles.x(:,4), Vehicles.x(:,5), '--r',...
+%     EKF.x_store(4,:), EKF.x_store(5,:), 'r')
+% legend('Vehicle 1 - Exact trajectory', 'Vehicle 1 - Estimated trajectory',...
+%     'Vehicle 2 - Exact trajectory', 'Vehicle 2 - Estimated trajectory')
+% axis equal
+% grid on
 
 figure(2)
 plot(Vehicles.t, EKF.x_store(1,:) - Vehicles.x(:,1)', 'b', Vehicles.t,...
