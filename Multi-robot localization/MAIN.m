@@ -20,7 +20,7 @@ Vehicles.Num = 3;
 % Vehicles initial conditions
 Vehicles.x0 = zeros(1, 3*Vehicles.Num);
 Vehicles.x0(4:6) = [1.5 1 pi/6];
-Vehicles.x0(7:9) = [1.5 -1 -pi/6];
+% Vehicles.x0(7:9) = [1.5 -1 -pi/6];
 
 % Vehicles lengthes and wheel radius assigment
 Vehicles.L = zeros(1, Vehicles.Num);
@@ -204,9 +204,10 @@ for i=2:EKF.NumS
     H_b = H_b_mf(x_cell_xy{1,:});
     H = [H; H_b];
     
+    % TODO Fix the sensor reading
 %     Z = [Z; Sensor.Rel.Noisyx_rel(i,4); Sensor.Rel.Noisyx_rel(i,1)]; %2D
     for k=1:nchoosek(Vehicles.Num, 2)
-       Z = [Z; Sensor.Rel.Noisyx_rel(i, k*4-3:k*4)];
+        Z = [Z; Sensor.Rel.Noisyx_rel(i,k*4); Sensor.Rel.Noisyx_rel(i,k*4-3)];
     end
     clear k
     
@@ -216,13 +217,19 @@ for i=2:EKF.NumS
 
     H = [H; H_d];
     
-    Z = [Z; Sensor.Rel.Noisyx_rel(i,2)];
+%     Z = [Z; Sensor.Rel.Noisyx_rel(i,2)];  % 2D
+    for k=1:nchoosek(Vehicles.Num, 2)
+        Z = [Z; Sensor.Rel.Noisyx_rel(i,k*2)];
+    end
     
     % 3 - Relative orientation
     H_o = H_o_mf;
     H = [H; H_o];
     
-    Z = [Z; Sensor.Rel.Noisyx_rel(i,3)];
+%     Z = [Z; Sensor.Rel.Noisyx_rel(i,3)];  % 2D
+    for k=1:nchoosek(Vehicles.Num, 2)
+        Z = [Z; Sensor.Rel.Noisyx_rel(i,k*3)];
+    end
     
     % TODO Fix EKF.R size for more than 2 vehicles
     % Kalman gain computation
