@@ -205,7 +205,11 @@ for i=2:EKF.NumS
     H_b = H_b_mf(x_cell_xy{1,:});
     H = [H; H_b];
     
-    Z = [Z; Sensor.Rel.Noisyx_rel(i,4); Sensor.Rel.Noisyx_rel(i,1)];   
+%     Z = [Z; Sensor.Rel.Noisyx_rel(i,4); Sensor.Rel.Noisyx_rel(i,1)]; %2D
+    for k=1:nchoosek(Vehicles.Num, 2)
+        Z = [Z; Sensor.Rel.Noisyx_rel(i,k*4); Sensor.Rel.Noisyx_rel(i,k*4-3)];
+    end
+    clear k
     
     % 2 - Relative distance
 %     H_d = double(subs(H_d_sym, x_sym, x_k1'));    % SLOW variant
@@ -213,13 +217,19 @@ for i=2:EKF.NumS
 
     H = [H; H_d];
     
-    Z = [Z; Sensor.Rel.Noisyx_rel(i,2)];
+%     Z = [Z; Sensor.Rel.Noisyx_rel(i,2)];  %2D
+    for k=1:nchoosek(Vehicles.Num, 2)
+        Z = [Z; Sensor.Rel.Noisyx_rel(i,k*2)];
+    end
     
     % 3 - Relative orientation
     H_o = H_o_mf;
     H = [H; H_o];
     
-    Z = [Z; Sensor.Rel.Noisyx_rel(i,3)];
+%     Z = [Z; Sensor.Rel.Noisyx_rel(i,3)];  %2D
+    for k=1:nchoosek(Vehicles.Num, 2)
+        Z = [Z; Sensor.Rel.Noisyx_rel(i,k*3)];
+    end
     
     % TODO Fix EKF.R size for more than 2 vehicles
     % Kalman gain computation
