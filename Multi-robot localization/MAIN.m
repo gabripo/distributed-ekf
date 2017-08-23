@@ -15,13 +15,18 @@ SimSets.Ts = 0.01;
 SimSets.T = 500;
 
 % Vehicles number
-Vehicles.Num = 3;
+Vehicles.Num = 4;
 
 % Vehicles initial conditions
-Vehicles.x0 = zeros(1, 3*Vehicles.Num);
-Vehicles.x0(4:6) = [1.5 1 pi/6];
-Vehicles.x0(7:9) = [1.5 -1 pi/3];
-% Vehicles.x0(10:12) = [2 2 pi/4];
+% Vehicles.x0 = zeros(1, 3*Vehicles.Num);
+% Vehicles.x0(4:6) = [1.5 1 pi/6];
+% Vehicles.x0(7:9) = [1.5 -1 pi/3];
+% Vehicles.x0(10:12) = [0 0 pi/4];
+rangeX = [-2,2];
+rangeY = [-2,2];
+rangeT = [-pi/4,pi/4];
+Vehicles.x0 = generateIC(Vehicles.Num, rangeX, rangeY, rangeT);
+clear rangeX rangeY rangeT
 
 % Vehicles lengthes and wheel radius assigment
 Vehicles.L = zeros(1, Vehicles.Num);
@@ -192,7 +197,9 @@ for i=2:EKF.NumS
     % 1 - Relative bearing angles
 %     H_b = double(subs(H_b_sym, x_sym, x_k1'));    % SLOW variant
     H_b = H_b_mf(x_cell_xy{1,:});
+    
     H = [H; H_b];
+%     H(isinf(H))=1e6;
     
 %     Z = [Z; Sensor.Rel.Noisyx_rel(i,1); Sensor.Rel.Noisyx_rel(i,4)]; %2D
     for k=1:nchoosek(Vehicles.Num, 2)
@@ -205,6 +212,7 @@ for i=2:EKF.NumS
     H_d = H_d_mf(x_cell_xy{1,:});
 
     H = [H; H_d];
+    H(isnan(H))=0;
     
 %     Z = [Z; Sensor.Rel.Noisyx_rel(i,2)];  %2D
     for k=1:nchoosek(Vehicles.Num, 2)
@@ -222,6 +230,10 @@ for i=2:EKF.NumS
     
     % Kalman gain computation
     K = P_k1*H'*inv(H*P_k1*H' + EKF.R);
+%     K(isnan(K))
+    if isnan(K)==1
+        i
+    end
     
     % Update equations
     EKF.x_est = x_k1 + K*(Z - H*x_k1);
@@ -244,6 +256,9 @@ figure(1)
 comparePlot(Vehicles.x, EKF.x_store, 'Exact trajectory of', 'Estimated trajectory of')
 axis equal
 grid on
+xlabel('X (m)')
+ylabel('Y (m)')
+saveas(gcf,'Trajectories','epsc')
 
 figure(2)
 % plot(Vehicles.t, EKF.x_store(1,:) - Vehicles.x(:,1)', 'b', Vehicles.t,...
@@ -254,4 +269,7 @@ figure(2)
 %     'Vehicle 2 - e_y')
 errorPlot(Vehicles.t, Vehicles.x, EKF.x_store)
 grid on
+xlabel('Time (s)')
+ylabel('Error (m)')
+saveas(gcf,'PositionErrors','epsc')
 CodeTime.Plot = toc
