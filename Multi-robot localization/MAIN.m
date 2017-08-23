@@ -15,7 +15,7 @@ SimSets.Ts = 0.01;
 SimSets.T = 500;
 
 % Vehicles number
-Vehicles.Num = 2;
+Vehicles.Num = 3;
 
 % Vehicles initial conditions
 rangeX = [-2,2];
@@ -33,6 +33,8 @@ for i=1:Vehicles.Num
 end
 clear i
 
+% RELATIVE MEASUREMENTS ACTIVATION - 1 is "active relative measurements"
+actRel = 1;
 %% Simulation
 
 % Vehicles simulations
@@ -120,7 +122,11 @@ end
 clear i
 
 % Covariance matrix of the measurements
-EKF.R = blkdiag(Noise.GPS.R, Noise.Rel.R);%, Noise.Rel.R(3,3), Noise.Rel.R(3,3), Noise.Rel.R(3,3), Noise.Rel.R(4,4), Noise.Rel.R(4,4), Noise.Rel.R(4,4)); %, Noise.Rel.R);
+if actRel
+    EKF.R = blkdiag(Noise.GPS.R, Noise.Rel.R);%, Noise.Rel.R(3,3), Noise.Rel.R(3,3), Noise.Rel.R(3,3), Noise.Rel.R(4,4), Noise.Rel.R(4,4), Noise.Rel.R(4,4)); %, Noise.Rel.R);
+else
+    EKF.R = blkdiag(Noise.GPS.R);
+end
 
 % Storing all the iterations
 EKF.x_store = zeros(3*Vehicles.Num, EKF.NumS);
@@ -194,6 +200,8 @@ for i=2:EKF.NumS
     x_cell = num2cell(x_k1');
     x_cell_xy = extractXY(x_cell);
 
+    if actRel
+        
     % 1 - Relative bearing angles
 %     H_b = double(subs(H_b_sym, x_sym, x_k1'));    % SLOW variant
     H_b = H_b_mf(x_cell_xy{1,:});
@@ -225,6 +233,8 @@ for i=2:EKF.NumS
 %     Z = [Z; Sensor.Rel.Noisyx_rel(i,3)];  %2D
     for k=1:nchoosek(Vehicles.Num, 2)
         Z = [Z; Sensor.Rel.Noisyx_rel(i,k*4-1)];
+    end
+    
     end
     
     % Kalman gain computation
