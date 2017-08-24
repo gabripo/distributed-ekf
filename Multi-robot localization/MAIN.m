@@ -15,7 +15,7 @@ SimSets.Ts = 0.01;
 SimSets.T = 500;
 
 % Vehicles number
-Vehicles.Num = 3;
+Vehicles.Num = 4;
 
 % Vehicles initial conditions
 rangeX = [-2,2];
@@ -63,9 +63,9 @@ clear i
 
 % Relative positions noise 
 Noise.Rel.mu = zeros(4*nchoosek(Vehicles.Num,2),1);
-Noise.Rel.MaxBearErr = pi/6;    % [rad]
-Noise.Rel.MaxDistErr = 1;       % [m]
-Noise.Rel.MaxOriErr = pi/3;     % [rad]
+Noise.Rel.MaxBearErr = pi;    % [rad]
+Noise.Rel.MaxDistErr = 5;       % [m]
+Noise.Rel.MaxOriErr = pi;     % [rad]
 Noise.Rel.R = [];
 for i=1:nchoosek(Vehicles.Num, 2)
     Noise.Rel.R = blkdiag(Noise.Rel.R, diag([(Noise.Rel.MaxBearErr/3)^2, (Noise.Rel.MaxBearErr/3)^2, (Noise.Rel.MaxDistErr/3)^2, (Noise.Rel.MaxOriErr/3)^2]));
