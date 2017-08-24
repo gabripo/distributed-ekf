@@ -15,7 +15,7 @@ SimSets.Ts = 0.01;
 SimSets.T = 500;
 
 % Vehicles number
-Vehicles.Num = 4;
+Vehicles.Num = 2;
 
 % Vehicles initial conditions
 rangeX = [-2,2];
@@ -37,9 +37,18 @@ clear i
 actRel = 1;
 %% Simulation
 
+% INPUTS
+SimSets.u{1,1} = @(t) 1;
+SimSets.u{1,2} = @(t) 1;
+% SimSets.u{1,3} = @(t) 1;
+SimSets.u{2,1} = @(t) 2*sin(2*pi*t/10).*cos(2*pi*t/2);
+SimSets.u{2,2} = @(t) 2*sin(2*pi*t/10).*cos(2*pi*t/2);
+% SimSets.u{2,3} = @(t) 2*sin(2*pi*t/10).*cos(2*pi*t/2);
+
 % Vehicles simulations
 tic
-[Vehicles.x, Vehicles.t, Vehicles.u] = UnicycleKinematicMatlab(SimSets, Vehicles);
+% [Vehicles.x, Vehicles.t, Vehicles.u] = UnicycleKinematicMatlab(SimSets, Vehicles);
+[Vehicles.x, Vehicles.t, Vehicles.u] = UnicycleKinematicMatlabPlus(SimSets, Vehicles);
 CodeTime.VehicleSym = toc;
 
 %% Noises - equal for all the vehicles
@@ -74,7 +83,8 @@ clear i
 %% Sensors simulation
 
 % Encoders
-[Sensor.Enc.Right, Sensor.Enc.Left] = EncoderSim(Vehicles);
+% [Sensor.Enc.Right, Sensor.Enc.Left] = EncoderSim(Vehicles);
+[Sensor.Enc.Right, Sensor.Enc.Left] = EncoderSimPlus(Vehicles);
 
 % Noisy encoders
 [Sensor.Enc.NoisyRight, Sensor.Enc.NoisyLeft] = EncoderNoise(Sensor, Noise, Vehicles.Num);
