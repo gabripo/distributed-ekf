@@ -15,7 +15,7 @@ SimSets.Ts = 0.01;
 SimSets.T = 500;
 
 % Vehicles number
-Vehicles.Num = 2;
+Vehicles.Num = 3;
 
 % Vehicles initial conditions
 rangeX = [-2,2];
@@ -71,6 +71,9 @@ for i=1:Vehicles.Num
     Noise.GPS.R(i*3-2:i*3, i*3-2:i*3) =  diag([(Noise.GPS.MaxPosErr/3)^2, (Noise.GPS.MaxPosErr/3)^2, (Noise.GPS.MaxOriErr/3)^2]);
 end
 clear i
+
+% Failure probability of the GPS
+Noise.GPS.probFailure = 0;
 
 % Relative positions noise 
 Noise.Rel.mu = zeros(4*nchoosek(Vehicles.Num,2),1);
@@ -203,54 +206,66 @@ for i=2:EKF.NumS
     % JACOBIAN MATRICES WITH RESPECT TO THE STATES
     H = [];
     Z = [];
-    % GPS Measures
-    H = [H; H_gps];
     
-    Z = [Z; Sensor.GPS.Noisyq_m(i,:)'];
-    
-    % Jacobian matrices of relative measurements
-    x_cell = num2cell(x_k1');
-    x_cell_xy = extractXY(x_cell);
-
-    if actRel
+    % LACKING OF MEASURES: the PDF of rand(1) is uniform with 1 the max
+    if rand(1) > Noise.GPS.probFailure
+        % GPS Jacobian
+        H = [H; H_gps];
         
-    % 1 - Relative bearing angles
-%     H_b = double(subs(H_b_sym, x_sym, x_k1'));    % SLOW variant
-    H_b = H_b_mf(x_cell_xy{1,:});
-    
-    H = [H; H_b];
-    
-%     Z = [Z; Sensor.Rel.Noisyx_rel(i,1); Sensor.Rel.Noisyx_rel(i,4)]; %2D
-    for k=1:nchoosek(Vehicles.Num, 2)
-        Z = [Z; Sensor.Rel.Noisyx_rel(i,k*4-3); Sensor.Rel.Noisyx_rel(i,k*4)];
+        % GPS measures
+        Z = [Z; Sensor.GPS.Noisyq_m(i,:)'];
+        
+        R = EKF.R;
+    else
+        % Trimming the covariance matrix
+        R = EKF.R(3*Vehicles.Num+1:end, 3*Vehicles.Num+1:end);
     end
-    clear k
-    
-    % 2 - Relative distance
-%     H_d = double(subs(H_d_sym, x_sym, x_k1'));    % SLOW variant
-    H_d = H_d_mf(x_cell_xy{1,:});
 
-    H = [H; H_d];
-%     H(isnan(H))=0;
-    
-%     Z = [Z; Sensor.Rel.Noisyx_rel(i,2)];  %2D
-    for k=1:nchoosek(Vehicles.Num, 2)
-        Z = [Z; Sensor.Rel.Noisyx_rel(i,k*4-2)];
-    end
-    
-    % 3 - Relative orientation
-    H_o = H_o_mf;
-    H = [H; H_o];
-    
-%     Z = [Z; Sensor.Rel.Noisyx_rel(i,3)];  %2D
-    for k=1:nchoosek(Vehicles.Num, 2)
-        Z = [Z; Sensor.Rel.Noisyx_rel(i,k*4-1)];
-    end
-    
-    end
+
+    % RELATIVE MEASUREMENTS STARTING
+    if actRel
+
+        % Symbolic state vector
+        x_cell = num2cell(x_k1');
+        x_cell_xy = extractXY(x_cell);
+        
+        % 1 - Relative bearing angles
+    %     H_b = double(subs(H_b_sym, x_sym, x_k1'));    % SLOW variant
+        H_b = H_b_mf(x_cell_xy{1,:});
+
+        H = [H; H_b];
+
+    %     Z = [Z; Sensor.Rel.Noisyx_rel(i,1); Sensor.Rel.Noisyx_rel(i,4)]; %2D
+        for k=1:nchoosek(Vehicles.Num, 2)
+            Z = [Z; Sensor.Rel.Noisyx_rel(i,k*4-3); Sensor.Rel.Noisyx_rel(i,k*4)];
+        end
+        clear k
+
+        % 2 - Relative distance
+    %     H_d = double(subs(H_d_sym, x_sym, x_k1'));    % SLOW variant
+        H_d = H_d_mf(x_cell_xy{1,:});
+
+        H = [H; H_d];
+    %     H(isnan(H))=0;
+
+    %     Z = [Z; Sensor.Rel.Noisyx_rel(i,2)];  %2D
+        for k=1:nchoosek(Vehicles.Num, 2)
+            Z = [Z; Sensor.Rel.Noisyx_rel(i,k*4-2)];
+        end
+
+        % 3 - Relative orientation
+        H_o = H_o_mf;
+        H = [H; H_o];
+
+    %     Z = [Z; Sensor.Rel.Noisyx_rel(i,3)];  %2D
+        for k=1:nchoosek(Vehicles.Num, 2)
+            Z = [Z; Sensor.Rel.Noisyx_rel(i,k*4-1)];
+        end
+
+    end % Relative measurements end
     
     % Kalman gain computation
-    K = P_k1*H'*inv(H*P_k1*H' + EKF.R);
+    K = P_k1*H'*inv(H*P_k1*H' + R);
 %     Checking condition
     if isnan(K)==1
         i
