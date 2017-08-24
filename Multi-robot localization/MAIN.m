@@ -38,12 +38,14 @@ actRel = 1;
 %% Simulation
 
 % INPUTS
-SimSets.u{1,1} = @(t) 1;
-SimSets.u{1,2} = @(t) 1;
-% SimSets.u{1,3} = @(t) 1;
-SimSets.u{2,1} = @(t) 2*sin(2*pi*t/10).*cos(2*pi*t/2);
-SimSets.u{2,2} = @(t) 2*sin(2*pi*t/10).*cos(2*pi*t/2);
-% SimSets.u{2,3} = @(t) 2*sin(2*pi*t/10).*cos(2*pi*t/2);
+% Generator settings
+funV = @(t) 1;
+funOmega = @(t) 2*sin(2*pi*t/10).*cos(2*pi*t/2);
+
+% Input generation function:
+% Choose 'same' to have the same input for all the vehicles
+% Choose'random' to have a random coefficient which multiplies v and omega
+SimSets.u = inputGenerator(Vehicles.Num, funV, funOmega, 'same');
 
 % Vehicles simulations
 tic
