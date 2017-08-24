@@ -45,7 +45,7 @@ funOmega = @(t) 2*sin(2*pi*t/10).*cos(2*pi*t/2);
 % Input generation function:
 % Choose 'same' to have the same input for all the vehicles
 % Choose'random' to have a random coefficient which multiplies v and omega
-SimSets.u = inputGenerator(Vehicles.Num, funV, funOmega, 'random');
+SimSets.u = inputGenerator(Vehicles.Num, funV, funOmega, 'same');
 
 % Vehicles simulations
 tic
@@ -73,7 +73,7 @@ end
 clear i
 
 % Failure probability of the GPS
-Noise.GPS.probFailure = 0.5;
+Noise.GPS.probFailure = 0.95;
 
 % Relative positions noise 
 Noise.Rel.mu = zeros(4*nchoosek(Vehicles.Num,2),1);
@@ -209,6 +209,8 @@ for i=2:EKF.NumS
     
     % LACKING OF MEASURES: the PDF of rand(1) is uniform with 1 the max
     if rand(1) > Noise.GPS.probFailure
+        fail = 0;
+        
         % GPS Jacobian
         H = [H; H_gps];
         
@@ -217,6 +219,7 @@ for i=2:EKF.NumS
         
         R = EKF.R;
     else
+        fail = 1;
         % Trimming the covariance matrix
         R = EKF.R(3*Vehicles.Num+1:end, 3*Vehicles.Num+1:end);
     end
@@ -274,8 +277,8 @@ for i=2:EKF.NumS
         end
 
         % Update equations
-        EKF.x_est = x_k1 + K*(Z - H*x_k1);
-    %     EKF.x_est = x_k1 + K*(Z - );
+%         EKF.x_est = x_k1 + K*(Z - H*x_k1);    % Linearized innovation
+        EKF.x_est = x_k1 + K*(Z - evalRel(x_k1, fail));
         EKF.P = (eye(3*Vehicles.Num) - K*H)*P_k1;
     else
         % Only prediction
