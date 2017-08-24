@@ -14,8 +14,11 @@ end
 
 % Random inputs
 if strcmp(option, 'random')
-
-    range = [1,2];
+    
+    % Range of variation of the constants over the dynamics
+    range = [0.1,1];
+    
+    % Constants to multiply the dynamics (uniform PDF)
     kV = range(1) + (range(2)-range(1))*rand(num,1);
     kOmega = range(1) + (range(2)-range(1))*rand(num,1);
     

@@ -15,7 +15,7 @@ SimSets.Ts = 0.01;
 SimSets.T = 500;
 
 % Vehicles number
-Vehicles.Num = 3;
+Vehicles.Num = 2;
 
 % Vehicles initial conditions
 rangeX = [-2,2];
@@ -34,7 +34,7 @@ end
 clear i
 
 % RELATIVE MEASUREMENTS ACTIVATION - 1 is "active relative measurements"
-actRel = 1;
+SimSets.actRel = 1;
 %% Simulation
 
 % INPUTS
@@ -45,7 +45,7 @@ funOmega = @(t) 2*sin(2*pi*t/10).*cos(2*pi*t/2);
 % Input generation function:
 % Choose 'same' to have the same input for all the vehicles
 % Choose'random' to have a random coefficient which multiplies v and omega
-SimSets.u = inputGenerator(Vehicles.Num, funV, funOmega, 'same');
+SimSets.u = inputGenerator(Vehicles.Num, funV, funOmega, 'random');
 
 % Vehicles simulations
 tic
@@ -73,7 +73,7 @@ end
 clear i
 
 % Failure probability of the GPS
-Noise.GPS.probFailure = 0;
+Noise.GPS.probFailure = 0.5;
 
 % Relative positions noise 
 Noise.Rel.mu = zeros(4*nchoosek(Vehicles.Num,2),1);
@@ -137,7 +137,7 @@ end
 clear i
 
 % Covariance matrix of the measurements
-if actRel
+if SimSets.actRel
     EKF.R = blkdiag(Noise.GPS.R, Noise.Rel.R);%, Noise.Rel.R(3,3), Noise.Rel.R(3,3), Noise.Rel.R(3,3), Noise.Rel.R(4,4), Noise.Rel.R(4,4), Noise.Rel.R(4,4)); %, Noise.Rel.R);
 else
     EKF.R = blkdiag(Noise.GPS.R);
@@ -223,7 +223,7 @@ for i=2:EKF.NumS
 
 
     % RELATIVE MEASUREMENTS STARTING
-    if actRel
+    if SimSets.actRel
 
         % Symbolic state vector
         x_cell = num2cell(x_k1');
@@ -264,17 +264,24 @@ for i=2:EKF.NumS
 
     end % Relative measurements end
     
-    % Kalman gain computation
-    K = P_k1*H'*inv(H*P_k1*H' + R);
-%     Checking condition
-    if isnan(K)==1
-        i
+    % Checking if there are measurements or not
+    if(not(isempty(H)))
+        % Kalman gain computation
+        K = P_k1*H'*inv(H*P_k1*H' + R);
+    %     Checking condition
+        if isnan(K)==1
+            i
+        end
+
+        % Update equations
+        EKF.x_est = x_k1 + K*(Z - H*x_k1);
+    %     EKF.x_est = x_k1 + K*(Z - );
+        EKF.P = (eye(3*Vehicles.Num) - K*H)*P_k1;
+    else
+        % Only prediction
+        EKF.x_est = x_k1;
+        EKF.P = P_k1;
     end
-    
-    % Update equations
-    EKF.x_est = x_k1 + K*(Z - H*x_k1);
-%     EKF.x_est = x_k1 + K*(Z - );
-    EKF.P = (eye(3*Vehicles.Num) - K*H)*P_k1;
 
     %% Storing the result
     EKF.x_store(:,i) = EKF.x_est;
