@@ -1,4 +1,4 @@
-function [estX, estP] = vehicleCPU(id, data)
+function [estX, estP] = vehicleCPU(data)
 %% Function to simulate the processor of the id-th vehicle. It receives EKF which is a structure that contains P and Q of the vehicle states/inputs, cond which establishes the measurements data of the EKF
 
 %% DATA UNPACKING
@@ -30,6 +30,7 @@ if boolRel
     if boolGPS
         % GPS measurements are available
         % Case IV - GPS and Relative measurements
+        
         
     else
         % GPS measurements are NOT available
