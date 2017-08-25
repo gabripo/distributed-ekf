@@ -15,7 +15,7 @@ SimSets.Ts = 0.01;
 SimSets.T = 500;
 
 % Vehicles number
-Vehicles.Num = 2;
+Vehicles.Num = 3;
 
 % Vehicles initial conditions
 rangeX = [-2,2];
@@ -282,6 +282,7 @@ for i=2:EKF.NumS
         EKF.P = (eye(3*Vehicles.Num) - K*H)*P_k1;
     else
         % Only prediction
+        
         EKF.x_est = x_k1;
         EKF.P = P_k1;
     end

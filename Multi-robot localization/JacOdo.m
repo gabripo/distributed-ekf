@@ -5,6 +5,6 @@ function F_xi = JacOdo(Vehicles, DeltaEnc, i, k)
 F_xi = zeros(3);
 
 % Jacobian Matrix
-F_xi =  [1 0 -sin(Vehicles.x(k, i*3))*Vehicles.R(i)/2*(DeltaEnc(i*2-1) - DeltaEnc(i*2));
+F_xi =  [1 0 -sin(Vehicles.x(k, i*3))*Vehicles.R(i)/2*(DeltaEnc(i*2-1) + DeltaEnc(i*2));
          0 1 cos(Vehicles.x(k, i*3))*Vehicles.R(i)/2*(DeltaEnc(i*2-1) + DeltaEnc(i*2));
          0 0 1];
