@@ -121,10 +121,6 @@ clear i j A
 
 %% Spawning of the vehicles
 
-% Vehicle spawn prototype:
-% vehicleCPU(1, send(1, Noise, Sensor, Vehicles, conditions))
-% send riceve l'id del veicolo e manda i dati specifici del veicolo
-
 % COSE DA FARE:
 % 1) Creare script nel quale si differenziano i vari casi
 % 2) Stabilire dal main code le variabili da inviare, creare programma di
@@ -141,6 +137,7 @@ EKF.x_est = zeros(3*Vehicles.Num, 1);
 % Initial covariance matrix of the states
 EKF.P = 1e2*eye(3*Vehicles.Num);
 
+tic
 for i=2:EKF.NumS
     
 %     x_est = EKF.x_est
@@ -154,18 +151,25 @@ for i=2:EKF.NumS
 %                 {x_est(n*3-2:n*3), P(n*3-2:n*3,n*3-2:n*3)}));
 %     end
 %     delete(gcp('nocreate'))
+
+    if rand(1) > Noise.GPS.probFailure
+        % Working GPS
+        boolGPS = 1;
+    else
+        boolGPS = 0;
+    end
     
     for n=1:Vehicles.Num
         
         [EKF.x_est(n*3-2:n*3), EKF.P(n*3-2:n*3,n*3-2:n*3)] =...
-            vehicleCPU(send(n, Noise, Sensor, Vehicles, [0,1], i,...
+            vehicleCPU(send(n, Noise, Sensor, Vehicles, [0,boolGPS], i,...
                 {EKF.x_est(n*3-2:n*3), EKF.P(n*3-2:n*3,n*3-2:n*3)}));
     end
     
     %% Storing the result
     EKF.x_store(:,i) = EKF.x_est;
 end
-
+CodeTime.EKF = toc;
 
 %% PLOTTING
 tic

@@ -1,4 +1,4 @@
-function h = evalRel(x, fail)
+function h = evalRel(x, boolGPS)
 
 [DX, DY, DT] = increments(x);
 
@@ -33,7 +33,7 @@ end
 clear i j k
 
 % Including GPS or not
-if fail
+if not(boolGPS)
     % GPS not working
     h = [h_b'; h_d'; h_o'];
 else

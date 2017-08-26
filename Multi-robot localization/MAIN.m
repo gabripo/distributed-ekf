@@ -15,7 +15,7 @@ SimSets.Ts = 0.01;
 SimSets.T = 500;
 
 % Vehicles number
-Vehicles.Num = 3;
+Vehicles.Num = 2;
 
 % Vehicles initial conditions
 rangeX = [-2,2];
@@ -209,7 +209,7 @@ for i=2:EKF.NumS
     
     % LACKING OF MEASURES: the PDF of rand(1) is uniform with 1 the max
     if rand(1) > Noise.GPS.probFailure
-        fail = 0;
+        boolGPS = 1;
         
         % GPS Jacobian
         H = [H; H_gps];
@@ -219,7 +219,8 @@ for i=2:EKF.NumS
         
         R = EKF.R;
     else
-        fail = 1;
+        boolGPS = 0;
+        
         % Trimming the covariance matrix
         R = EKF.R(3*Vehicles.Num+1:end, 3*Vehicles.Num+1:end);
     end
@@ -278,7 +279,7 @@ for i=2:EKF.NumS
 
         % Update equations
 %         EKF.x_est = x_k1 + K*(Z - H*x_k1);    % Linearized innovation
-        EKF.x_est = x_k1 + K*(Z - evalRel(x_k1, fail));
+        EKF.x_est = x_k1 + K*(Z - evalRel(x_k1, boolGPS));
         EKF.P = (eye(3*Vehicles.Num) - K*H)*P_k1;
     else
         % Only prediction
