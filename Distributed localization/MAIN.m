@@ -15,7 +15,7 @@ SimSets.Ts = 0.01;
 SimSets.T = 500;
 
 % Vehicles number
-Vehicles.Num = 2;
+Vehicles.Num = 4;
 
 % Vehicles initial conditions
 rangeX = [-2,2];
@@ -34,7 +34,8 @@ end
 clear i
 
 % RELATIVE MEASUREMENTS ACTIVATION - 1 is "active relative measurements"
-SimSets.actRel = 1;
+SimSets.actRel = 0;
+boolRel = SimSets.actRel;
 %% Simulation
 
 % INPUTS
@@ -72,7 +73,7 @@ end
 clear i
 
 % Failure probability of the GPS
-Noise.GPS.probFailure = 0.95;
+Noise.GPS.probFailure = 0;
 
 % Relative positions noise 
 Noise.Rel.mu = zeros(4*nchoosek(Vehicles.Num,2),1);
@@ -119,7 +120,7 @@ clear i j A
 [Sensor.Rel.Noisyx_rel] = RelSymNoise(Sensor.Rel.x_rel, Noise);
 %%  DIFFERENT FROM THE CENTRALIZED KALMAN FROM THIS POINT
 
-%% Spawning of the vehicles
+%% EKF Initialization
 
 % COSE DA FARE:
 % 1) Creare script nel quale si differenziano i vari casi
@@ -137,6 +138,7 @@ EKF.x_est = zeros(3*Vehicles.Num, 1);
 % Initial covariance matrix of the states
 EKF.P = 1e2*eye(3*Vehicles.Num);
 
+%% EKF
 tic
 for i=2:EKF.NumS
     
@@ -162,8 +164,9 @@ for i=2:EKF.NumS
     for n=1:Vehicles.Num
         
         [EKF.x_est(n*3-2:n*3), EKF.P(n*3-2:n*3,n*3-2:n*3)] =...
-            vehicleCPU(send(n, Noise, Sensor, Vehicles, [0,boolGPS], i,...
-                {EKF.x_est(n*3-2:n*3), EKF.P(n*3-2:n*3,n*3-2:n*3)}));
+            vehicleCPU(send(n, Noise, Sensor, Vehicles,...
+            [boolRel,boolGPS], i, {EKF.x_est(n*3-2:n*3),...
+            EKF.P(n*3-2:n*3,n*3-2:n*3)}));
     end
     
     %% Storing the result

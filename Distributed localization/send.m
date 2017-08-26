@@ -14,10 +14,44 @@ if boolRel
         % GPS measurements are available
         % Case IV - GPS and Relative measurements
         
+        % Encoders data to send
+        Q = diag([Noise.Enc.sigma^2, Noise.Enc.sigma^2]);
+        theta_r_km1 = Sensor.Enc.NoisyRight(t-1);
+        theta_l_km1 = Sensor.Enc.NoisyLeft(t-1);
+        theta_r_k = Sensor.Enc.NoisyRight(t);
+        theta_l_k = Sensor.Enc.NoisyLeft(t);
+        R = Vehicles.R(id);
+        L = Vehicles.L(id);
+        
+        % Previous state estimation
+        x_k = currentEst{1};
+        P_k = currentEst{2};
+        
+        % GPS data to send
+        Zk_gps = Sensor.GPS.Noisyq_m(t,3*id-2:3*id)';
+        Rk_gps = Noise.GPS.R(id*3-2:id*3, id*3-2:id*3);
+        
     else
         % GPS measurements are NOT available
         % Case III - No GPS and Relative measurements
         
+        % Encoders data to send
+        Q = diag([Noise.Enc.sigma^2, Noise.Enc.sigma^2]);
+        theta_r_km1 = Sensor.Enc.NoisyRight(t-1);
+        theta_l_km1 = Sensor.Enc.NoisyLeft(t-1);
+        theta_r_k = Sensor.Enc.NoisyRight(t);
+        theta_l_k = Sensor.Enc.NoisyLeft(t);
+        R = Vehicles.R(id);
+        L = Vehicles.L(id);
+        
+        % Previous state estimation
+        x_k = currentEst{1};
+        P_k = currentEst{2};
+        
+        % Relative measurements
+        Zk_b = [];
+        % Bearing angles w.r.t id
+            Zk_b = [Zk_b; Sensor.Rel.Noisyx_rel(t,)];
     end
     
 else

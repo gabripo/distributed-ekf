@@ -1,4 +1,4 @@
-% Simulate the relative position detection between q_i and q_j
+%% Simulate the relative position detection between q_i and q_j (it is DIFFERENT w.r.t the centralized EKF code!)
 function q_rel = RelSym(q_i, q_j)
 
 % Increments computation
@@ -19,4 +19,4 @@ z_d = sqrt( delta_x.^2 + delta_y.^2 );
 % Relative orientation
 z_o = theta_j - theta_i;
 
-q_rel = [z_b_i, z_d, z_o, z_b_j];
+q_rel = [z_b_i, z_b_j, z_d, z_o];   % Different from the centralized EKF code!
