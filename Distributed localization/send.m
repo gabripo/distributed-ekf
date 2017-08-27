@@ -33,9 +33,9 @@ if boolRel
         
         % Relative measurements data to send
         % Covariance matrix of relative measurements
-        R = [];
+        R_rel = [];
         I = eye(Vehicles.Num-1);
-        R = blkdiag(R, I*(Noise.Rel.MaxBearErr/3)^2,...
+        R_rel = blkdiag(R_rel, I*(Noise.Rel.MaxBearErr/3)^2,...
             I*(Noise.Rel.MaxDistErr/3)^2, I*(Noise.Rel.MaxOriErr/3)^2);
         
         % Bearing angles w.r.t id
@@ -50,7 +50,7 @@ if boolRel
         % Packet to send
         packet = {boolRel, boolGPS, [{Q}, theta_r_km1, theta_l_km1,...
             theta_r_k, theta_l_k, R, L], {Zk_gps, Rk_gps},...
-            {Zk_b, Zk_d, Zk_o, R}, [{x_k}, {P_k}]};
+            {Zk_b, Zk_d, Zk_o, R_rel}, [{x_k}, {P_k}]};
         
     else
         % GPS measurements are NOT available
@@ -71,9 +71,9 @@ if boolRel
         
         % Relative measurements data to send
         % Covariance matrix of the relative measurements
-        R = [];
+        R_rel = [];
         I = eye(Vehicles.Num-1);
-        R = blkdiag(R, I*(Noise.Rel.MaxBearErr/3)^2,...
+        R_rel = blkdiag(R_rel, I*(Noise.Rel.MaxBearErr/3)^2,...
             I*(Noise.Rel.MaxDistErr/3)^2, I*(Noise.Rel.MaxOriErr/3)^2);
         
         % Bearing angles w.r.t id
@@ -87,7 +87,7 @@ if boolRel
         
         % Packet to send
         packet = {boolRel, boolGPS, [{Q}, theta_r_km1, theta_l_km1,...
-            theta_r_k, theta_l_k, R, L], [], {Zk_b, Zk_d, Zk_o, R},...
+            theta_r_k, theta_l_k, R, L], [], {Zk_b, Zk_d, Zk_o, R_rel},...
             [{x_k}, {P_k}]};
     end
     

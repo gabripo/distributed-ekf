@@ -15,7 +15,7 @@ SimSets.Ts = 0.01;
 SimSets.T = 500;
 
 % Vehicles number
-Vehicles.Num = 2;
+Vehicles.Num = 4;
 
 % Vehicles initial conditions
 rangeX = [-2,2];
