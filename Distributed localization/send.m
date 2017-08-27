@@ -31,6 +31,27 @@ if boolRel
         Zk_gps = Sensor.GPS.Noisyq_m(t,3*id-2:3*id)';
         Rk_gps = Noise.GPS.R(id*3-2:id*3, id*3-2:id*3);
         
+        % Relative measurements data to send
+        % Covariance matrix of relative measurements
+        R = [];
+        I = eye(Vehicles.Num-1);
+        R = blkdiag(R, I*(Noise.Rel.MaxBearErr/3)^2,...
+            I*(Noise.Rel.MaxDistErr/3)^2, I*(Noise.Rel.MaxOriErr/3)^2);
+        
+        % Bearing angles w.r.t id
+        Zk_b = Sensor.Rel.finalx_rel{id}(t,:);
+        
+        % Relative distances w.r.t id
+        Zk_d = Sensor.Rel.finalx_rel{Vehicles.Num+id}(t,:);
+        
+        % Relative orientations w.r.t id
+        Zk_o = Sensor.Rel.finalx_rel{2*Vehicles.Num+id}(t,:);
+        
+        % Packet to send
+        packet = {boolRel, boolGPS, [{Q}, theta_r_km1, theta_l_km1,...
+            theta_r_k, theta_l_k, R, L], {Zk_gps, Rk_gps},...
+            {Zk_b, Zk_d, Zk_o, R}, [{x_k}, {P_k}]};
+        
     else
         % GPS measurements are NOT available
         % Case III - No GPS and Relative measurements
@@ -48,21 +69,25 @@ if boolRel
         x_k = currentEst{1};
         P_k = currentEst{2};
         
-        % All the relative measurements
-        Zk_rel = Sensor.Rel.finalx_rel;
+        % Relative measurements data to send
+        % Covariance matrix of the relative measurements
+        R = [];
+        I = eye(Vehicles.Num-1);
+        R = blkdiag(R, I*(Noise.Rel.MaxBearErr/3)^2,...
+            I*(Noise.Rel.MaxDistErr/3)^2, I*(Noise.Rel.MaxOriErr/3)^2);
         
         % Bearing angles w.r.t id
-        Zk_b = Zk_rel{id}(t,:);
+        Zk_b = Sensor.Rel.finalx_rel{id}(t,:);
         
         % Relative distances w.r.t id
-        Zk_d = Zk_rel{Vehicles.Num+id}(t,:);
+        Zk_d = Sensor.Rel.finalx_rel{Vehicles.Num+id}(t,:);
         
         % Relative orientations w.r.t id
-        Zk_o = Zk_rel{2*Vehicles.Num+id}(t,:);
+        Zk_o = Sensor.Rel.finalx_rel{2*Vehicles.Num+id}(t,:);
         
         % Packet to send
         packet = {boolRel, boolGPS, [{Q}, theta_r_km1, theta_l_km1,...
-            theta_r_k, theta_l_k, R, L], [], {Zk_b, Zk_d, Zk_o},...
+            theta_r_k, theta_l_k, R, L], [], {Zk_b, Zk_d, Zk_o, R},...
             [{x_k}, {P_k}]};
     end
     
