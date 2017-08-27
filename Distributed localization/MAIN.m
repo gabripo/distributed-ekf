@@ -118,6 +118,9 @@ clear i j A
 
 % Noisy relative measurements
 [Sensor.Rel.Noisyx_rel] = RelSymNoise(Sensor.Rel.x_rel, Noise);
+
+% REORDERED (noisy) relative measurements
+Sensor.Rel.finalx_rel = extractXrel(Sensor.Rel.Noisyx_rel, Vehicles.Num);
 %%  DIFFERENT FROM THE CENTRALIZED KALMAN FROM THIS POINT
 
 %% EKF Initialization

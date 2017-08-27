@@ -48,10 +48,22 @@ if boolRel
         x_k = currentEst{1};
         P_k = currentEst{2};
         
-        % Relative measurements
-        Zk_b = [];
+        % All the relative measurements
+        Zk_rel = Sensor.Rel.finalx_rel;
+        
         % Bearing angles w.r.t id
-            Zk_b = [Zk_b; Sensor.Rel.Noisyx_rel(t,)];
+        Zk_b = Zk_rel{id}(t,:);
+        
+        % Relative distances w.r.t id
+        Zk_d = Zk_rel{Vehicles.Num+id}(t,:);
+        
+        % Relative orientations w.r.t id
+        Zk_o = Zk_rel{2*Vehicles.Num+id}(t,:);
+        
+        % Packet to send
+        packet = {boolRel, boolGPS, [{Q}, theta_r_km1, theta_l_km1,...
+            theta_r_k, theta_l_k, R, L], [], {Zk_b, Zk_d, Zk_o},...
+            [{x_k}, {P_k}]};
     end
     
 else
