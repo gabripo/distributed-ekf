@@ -68,7 +68,7 @@ if boolRel
         R = blkdiag(R, R_gps);
         
         % Adding the relative measurements
-        % TODO
+        % TODO - ricopia da sotto
         
         % Kalman gain computation
         K = P_k1*H'*inv(H*P_k1*H' + R);
@@ -109,7 +109,14 @@ if boolRel
         % Adding the relative measurements
         [Z_b, Z_d, Z_o] = dataRel{:};
         
+        % 1 - Relative bearing angles
+        Z = [Z; Z_b'];
         
+        % 2 - Relative distance
+        Z = [Z; Z_d'];
+        
+        % 3 - Relative orientation
+        Z = [Z; Z_o'];
         
 %         % Kalman gain computation
 %         K = P_k1*H'*inv(H*P_k1*H' + R);

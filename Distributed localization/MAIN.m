@@ -15,7 +15,7 @@ SimSets.Ts = 0.01;
 SimSets.T = 500;
 
 % Vehicles number
-Vehicles.Num = 4;
+Vehicles.Num = 3;
 
 % Vehicles initial conditions
 rangeX = [-2,2];
@@ -122,6 +122,21 @@ clear i j A
 % REORDERED (noisy) relative measurements
 Sensor.Rel.finalx_rel = extractXrel(Sensor.Rel.Noisyx_rel, Vehicles.Num);
 %%  DIFFERENT FROM THE CENTRALIZED KALMAN FROM THIS POINT
+
+%% JACOBIAN MATRICES OF RELATIVE MEASUREMENTS HARDCODING
+% H = subs(H_sym, x_sym, x);
+tic
+[H_d_sym, H_o_sym, H_b_sym] = JacRel(Vehicles.x0);
+% matlabFunction(H_d_sym, 'File', 'H_d_mf');
+% matlabFunction(H_o_sym, 'File', 'H_o_mf');
+% matlabFunction(H_b_sym, 'File', 'H_b_mf');
+CodeTime.JacComp = toc;
+
+% % Symbolic H
+% H_sym = [H_gps; H_b_sym; H_d_sym; H_o_sym];
+
+% Symbolic state vector
+x_sym = symbolizer(EKF.x_est, 'x');
 
 %% EKF Initialization
 

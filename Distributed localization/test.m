@@ -22,5 +22,5 @@ P_k = ones(3);
 % [estX, estP] = vehicleCPU(a)
 % clear a
 
-a = send(1, Noise, Sensor, Vehicles, [1,0], 5, {[1,0,pi/4]',ones(3)});
+a = send(1, Noise, Sensor, Vehicles, [0,1], 5, {[1,0,pi/4]',ones(3)});
 vehicleCPU(a)
